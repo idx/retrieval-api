@@ -27,21 +27,51 @@ class RerankerModel:
         self.model_name = model_name
         self.model_dir = model_dir
         self.max_length = max_length
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        # Detect available GPU type and set device
+        self.device = self._detect_device()
         
+        # Load the model
+        self._load_model()
+        
+    def _detect_device(self):
+        """Detect the best available device (NVIDIA CUDA, AMD ROCm, or CPU)"""
+        # Check for NVIDIA CUDA
+        if torch.cuda.is_available():
+            logger.info("NVIDIA CUDA detected")
+            return torch.device("cuda")
+        
+        # Check for AMD ROCm
+        try:
+            import torch
+            if hasattr(torch.version, 'hip') and torch.version.hip is not None:
+                logger.info("AMD ROCm detected")
+                return torch.device("cuda")  # ROCm uses cuda API
+        except:
+            pass
+        
+        # Check if AMD GPU is available via environment variables
+        if os.getenv('HIP_VISIBLE_DEVICES') is not None or os.getenv('ROCR_VISIBLE_DEVICES') is not None:
+            logger.info("AMD GPU environment detected")
+            return torch.device("cuda")  # ROCm uses cuda API
+        
+        logger.info("No GPU detected, using CPU")
+        return torch.device("cpu")
+
+    def _load_model(self):
+        """Load the model"""
         logger.info(f"Initializing BGE Reranker on device: {self.device}")
         
         # Try to load from local directory first if specified
-        if model_dir and os.path.exists(model_dir):
-            logger.info(f"Loading model from local directory: {model_dir}")
-            model_path = model_dir
+        if self.model_dir and os.path.exists(self.model_dir):
+            logger.info(f"Loading model from local directory: {self.model_dir}")
+            model_path = self.model_dir
         else:
-            logger.info(f"Loading model from Hugging Face Hub: {model_name}")
-            model_path = model_name
+            logger.info(f"Loading model from Hugging Face Hub: {self.model_name}")
+            model_path = self.model_name
             
             # Create model directory if specified
-            if model_dir:
-                Path(model_dir).mkdir(parents=True, exist_ok=True)
+            if self.model_dir:
+                Path(self.model_dir).mkdir(parents=True, exist_ok=True)
         
         try:
             # Load model using sentence-transformers CrossEncoder
@@ -52,9 +82,9 @@ class RerankerModel:
             )
             
             # Save model locally if directory specified and not already saved
-            if model_dir and not os.path.exists(os.path.join(model_dir, "config.json")):
-                logger.info(f"Saving model to local directory: {model_dir}")
-                self.model.save(model_dir)
+            if self.model_dir and not os.path.exists(os.path.join(self.model_dir, "config.json")):
+                logger.info(f"Saving model to local directory: {self.model_dir}")
+                self.model.save(self.model_dir)
                 
         except Exception as e:
             logger.error(f"Failed to load with CrossEncoder, trying direct loading: {str(e)}")

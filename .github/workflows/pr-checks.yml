@@ -1,0 +1,208 @@
+name: Pull Request Checks
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      python: ${{ steps.changes.outputs.python }}
+      docker: ${{ steps.changes.outputs.docker }}
+      docs: ${{ steps.changes.outputs.docs }}
+      tests: ${{ steps.changes.outputs.tests }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Detect changes
+      uses: dorny/paths-filter@v2
+      id: changes
+      with:
+        filters: |
+          python:
+            - '*.py'
+            - 'requirements*.txt'
+          docker:
+            - 'Dockerfile*'
+            - 'docker-compose*.yml'
+            - '.dockerignore'
+          docs:
+            - '*.md'
+            - 'docs/**'
+          tests:
+            - 'tests/**'
+            - 'test_*.py'
+
+  fast-tests:
+    name: Fast Tests
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.python == 'true'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-mock ruff
+
+    - name: Quick lint check
+      run: |
+        ruff check . --select=E,W,F
+
+    - name: Run fast tests only
+      run: |
+        pytest tests/ -v -m "not slow" --tb=short
+
+  docker-quick-test:
+    name: Quick Docker Test
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.docker == 'true'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Test Docker build
+      run: |
+        docker build -t rerank-api:pr-test .
+
+    - name: Test Docker Compose syntax
+      run: |
+        docker-compose -f docker-compose.yml config
+        docker-compose -f docker-compose.cpu.yml config
+        docker-compose -f docker-compose.amd.yml config
+
+  docs-check:
+    name: Documentation Check
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.docs == 'true'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Check markdown syntax
+      uses: articulate/actions-markdownlint@v1
+      with:
+        config: .markdownlint.json
+        files: '*.md'
+        ignore: node_modules
+
+    - name: Spell check
+      uses: streetsidesoftware/cspell-action@v2
+      with:
+        files: "**/*.md"
+        config: ".cspell.json"
+
+  size-check:
+    name: PR Size Check
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check PR size
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const pr = context.payload.pull_request;
+          const additions = pr.additions;
+          const deletions = pr.deletions;
+          const total_changes = additions + deletions;
+          
+          console.log(`PR changes: +${additions} -${deletions} (total: ${total_changes})`);
+          
+          if (total_changes > 1000) {
+            core.setFailed(`PR is too large (${total_changes} changes). Consider breaking it into smaller PRs.`);
+          } else if (total_changes > 500) {
+            console.log('⚠️ Large PR detected. Consider breaking into smaller PRs.');
+          }
+
+  auto-assign:
+    name: Auto Assign Reviewers
+    runs-on: ubuntu-latest
+    if: github.event.action == 'opened'
+
+    steps:
+    - name: Auto assign PR
+      uses: actions/github-script@v6
+      with:
+        script: |
+          // Add labels based on changed files
+          const pr = context.payload.pull_request;
+          const labels = [];
+          
+          if (pr.title.toLowerCase().includes('docker')) {
+            labels.push('docker');
+          }
+          if (pr.title.toLowerCase().includes('test')) {
+            labels.push('testing');
+          }
+          if (pr.title.toLowerCase().includes('doc')) {
+            labels.push('documentation');
+          }
+          if (pr.title.toLowerCase().includes('fix')) {
+            labels.push('bug');
+          }
+          if (pr.title.toLowerCase().includes('feat')) {
+            labels.push('enhancement');
+          }
+          
+          if (labels.length > 0) {
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              labels: labels
+            });
+          }
+
+  conventional-commits:
+    name: Check Conventional Commits
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Check commit messages
+      uses: wagoid/commitlint-github-action@v5
+      with:
+        configFile: '.commitlintrc.json'
+
+  api-compatibility:
+    name: API Compatibility Check
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.python == 'true'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Check API schema changes
+      run: |
+        # This is a placeholder for API compatibility checking
+        # In a real scenario, you might compare OpenAPI specs
+        echo "Checking for breaking API changes..."
+        
+        # Check if critical endpoints still exist
+        grep -q "POST /v1/rerank" app.py || (echo "❌ Critical endpoint missing" && exit 1)
+        grep -q "GET /health" app.py || (echo "❌ Health endpoint missing" && exit 1)
+        grep -q "GET /models" app.py || (echo "❌ Models endpoint missing" && exit 1)
+        
+        echo "✅ All critical endpoints present"

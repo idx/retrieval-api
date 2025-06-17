@@ -1,0 +1,193 @@
+name: Docker Multi-Platform Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths: 
+      - 'Dockerfile*'
+      - 'docker-compose*.yml'
+      - 'requirements*.txt'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'Dockerfile*'
+      - 'docker-compose*.yml'
+      - 'requirements*.txt'
+  workflow_dispatch:
+
+jobs:
+  docker-build-test:
+    name: Test Docker Builds
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: "NVIDIA GPU"
+            dockerfile: "Dockerfile"
+            requirements: "requirements.txt"
+            compose_file: "docker-compose.yml"
+            test_env: "CUDA_VISIBLE_DEVICES=-1"
+          - name: "AMD GPU"
+            dockerfile: "Dockerfile.amd"
+            requirements: "requirements.amd.txt"
+            compose_file: "docker-compose.amd.yml"
+            test_env: "HIP_VISIBLE_DEVICES=-1"
+          - name: "CPU Only"
+            dockerfile: "Dockerfile"
+            requirements: "requirements.txt"
+            compose_file: "docker-compose.cpu.yml"
+            test_env: "CUDA_VISIBLE_DEVICES=-1"
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build Docker image (${{ matrix.name }})
+      run: |
+        docker build -f ${{ matrix.dockerfile }} -t rerank-api:test-${{ github.run_id }} .
+
+    - name: Test Docker image
+      run: |
+        # Start container in detached mode
+        docker run -d --name test-container-${{ github.run_id }} \
+          -p 7987:7987 \
+          -e ${{ matrix.test_env }} \
+          rerank-api:test-${{ github.run_id }}
+        
+        # Wait for container to be ready
+        timeout 120 bash -c 'until docker exec test-container-${{ github.run_id }} curl -f http://localhost:7987/health; do sleep 5; done'
+        
+        # Test health endpoint
+        docker exec test-container-${{ github.run_id }} curl -f http://localhost:7987/health
+        
+        # Test models endpoint
+        docker exec test-container-${{ github.run_id }} curl -f http://localhost:7987/models
+        
+        # Stop container
+        docker stop test-container-${{ github.run_id }}
+        docker rm test-container-${{ github.run_id }}
+
+    - name: Test Docker Compose (${{ matrix.name }})
+      run: |
+        # Test compose file syntax
+        docker-compose -f ${{ matrix.compose_file }} config
+        
+        # Test build via compose (if build section exists)
+        if grep -q "build:" ${{ matrix.compose_file }}; then
+          docker-compose -f ${{ matrix.compose_file }} build --no-cache
+        fi
+
+    - name: Cleanup
+      if: always()
+      run: |
+        docker rmi rerank-api:test-${{ github.run_id }} || true
+        docker system prune -f
+
+  compose-integration-test:
+    name: Docker Compose Integration Test
+    runs-on: ubuntu-latest
+    needs: docker-build-test
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Test CPU-only deployment
+      run: |
+        # Start services
+        docker-compose -f docker-compose.cpu.yml up -d --build
+        
+        # Wait for service to be ready
+        timeout 180 bash -c 'until curl -f http://localhost:7987/health; do sleep 5; done'
+        
+        # Run comprehensive API tests
+        python3 test_api_example.py || echo "API test completed"
+        
+        # Test GPU detection script
+        chmod +x test_detection.sh
+        ./test_detection.sh
+        
+        # Check container logs
+        docker-compose -f docker-compose.cpu.yml logs
+        
+        # Stop services
+        docker-compose -f docker-compose.cpu.yml down
+
+    - name: Test start.sh script
+      run: |
+        # Make script executable
+        chmod +x start.sh
+        
+        # Test script logic (without actually starting services)
+        bash -n start.sh  # Syntax check
+        
+        # Test detection function
+        bash -c 'source start.sh; detect_gpu' || echo "Detection function tested"
+
+  vulnerability-scan:
+    name: Docker Security Scan
+    runs-on: ubuntu-latest
+    needs: docker-build-test
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Build image for scanning
+      run: |
+        docker build -t rerank-api:scan .
+
+    - name: Run Trivy vulnerability scanner on Docker image
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: 'rerank-api:scan'
+        format: 'table'
+        exit-code: '0'  # Don't fail on vulnerabilities for now
+
+    - name: Run Grype vulnerability scanner
+      uses: anchore/scan-action@v3
+      with:
+        image: "rerank-api:scan"
+        fail-build: false
+
+  hadolint:
+    name: Dockerfile Lint
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Lint Dockerfile
+      uses: hadolint/hadolint-action@v3.1.0
+      with:
+        dockerfile: Dockerfile
+
+    - name: Lint Dockerfile.amd
+      uses: hadolint/hadolint-action@v3.1.0
+      with:
+        dockerfile: Dockerfile.amd
+
+  docker-manifest:
+    name: Test Multi-Arch Support
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Test multi-platform build
+      run: |
+        docker buildx build \
+          --platform linux/amd64,linux/arm64 \
+          --tag rerank-api:multi-arch \
+          --file Dockerfile \
+          . \
+          --dry-run

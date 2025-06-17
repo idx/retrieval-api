@@ -35,6 +35,7 @@ def mock_model_manager():
 class TestHealthEndpoints:
     """Test health and status endpoints"""
     
+    @pytest.mark.unit
     def test_root_endpoint(self, client):
         """Test root endpoint returns correct information"""
         response = client.get("/")
@@ -47,6 +48,7 @@ class TestHealthEndpoints:
         assert data["endpoints"]["health"] == "/health"
         assert data["endpoints"]["models"] == "/models"
     
+    @pytest.mark.unit
     def test_health_endpoint(self, client):
         """Test health check endpoint"""
         response = client.get("/health")

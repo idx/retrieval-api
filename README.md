@@ -9,7 +9,8 @@ OpenAI-compatible Rerank API service using BGE Reranker models for high-precisio
 - OpenAI-compatible Rerank API endpoints
 - Dynamic model selection via API requests
 - High-precision document reranking using BGE Reranker models
-- GPU/CPU auto-detection and support
+- Multi-GPU support (NVIDIA CUDA, AMD ROCm) with automatic detection
+- CPU fallback support
 - Easy deployment with Docker
 - Async processing for high-speed responses
 - Model caching and efficient memory management
@@ -43,14 +44,24 @@ chmod +x start.sh
 #### Manual Docker Commands
 
 ```bash
-# Build
+# Build for NVIDIA GPU
 docker build -t rerank-api .
 
-# Run with GPU support (if available)
+# Build for AMD GPU  
+docker build -f Dockerfile.amd -t rerank-api:amd .
+
+# Run with NVIDIA GPU support
 docker run -d --name rerank-api \
   -p 7987:7987 \
   --gpus all \
   rerank-api
+
+# Run with AMD GPU support
+docker run -d --name rerank-api-amd \
+  -p 7987:7987 \
+  --device=/dev/kfd --device=/dev/dri \
+  --group-add video --group-add render \
+  rerank-api:amd
 
 # Run with CPU only
 docker run -d --name rerank-api \
@@ -62,8 +73,11 @@ docker run -d --name rerank-api \
 #### Docker Compose
 
 ```bash
-# With GPU support
+# NVIDIA GPU support
 docker-compose up -d
+
+# AMD GPU support
+docker-compose -f docker-compose.amd.yml up -d
 
 # CPU only mode
 docker-compose -f docker-compose.cpu.yml up -d
@@ -312,9 +326,23 @@ self.supported_models = {
 
 ### GPU Configuration
 
+#### NVIDIA GPU Support
 - NVIDIA drivers (latest version recommended)
 - CUDA 11.8+ support
 - GPU memory 4GB+ recommended
+- NVIDIA Container Toolkit for Docker
+
+#### AMD GPU Support  
+- ROCm 6.0+ support
+- AMD GPU drivers (AMDGPU-PRO or open-source)
+- GPU memory 4GB+ recommended
+- Docker with AMD GPU device access (`/dev/kfd`, `/dev/dri`)
+
+#### Automatic Detection
+The service automatically detects available GPU hardware:
+- 🟢 NVIDIA GPU → Uses CUDA acceleration
+- 🔵 AMD GPU → Uses ROCm acceleration  
+- ⚪ No GPU → Falls back to CPU
 
 ### Memory Management
 

@@ -1,0 +1,39 @@
+services:
+  rerank-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.amd
+    image: rerank-api:amd
+    container_name: rerank-api-amd
+    ports:
+      - "7987:7987"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=7987
+      - WORKERS=1
+      - RERANKER_MODEL_NAME=maidalun1020/bce-reranker-base_v1
+      - RERANKER_MODELS_DIR=/app/models
+      - HF_HOME=/home/appuser/.cache/huggingface
+      # AMD GPU specific environment
+      - HIP_VISIBLE_DEVICES=0
+      - ROCR_VISIBLE_DEVICES=0
+    volumes:
+      - ./models:/app/models
+      - huggingface-cache:/home/appuser/.cache/huggingface
+    devices:
+      - /dev/kfd:/dev/kfd
+      - /dev/dri:/dev/dri
+    group_add:
+      - video
+      - render
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7987/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  huggingface-cache:
+    driver: local

@@ -9,7 +9,8 @@ OpenAI互換のRerank APIサービス。BGE Rerankerモデルを使用して高�
 - OpenAI API互換のRerankエンドポイント
 - APIリクエストによる動的なモデル選択
 - BGE Rerankerモデルによる高精度な文書再ランキング
-- GPU/CPU自動検出とサポート
+- マルチGPUサポート（NVIDIA CUDA、AMD ROCm）と自動検出
+- CPUフォールバックサポート
 - Dockerによる簡単なデプロイメント
 - 非同期処理による高速レスポンス
 - モデルキャッシュと効率的なメモリ管理
