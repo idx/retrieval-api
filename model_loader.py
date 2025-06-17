@@ -42,7 +42,6 @@ class RerankerModel:
         
         # Check for AMD ROCm
         try:
-            import torch
             if hasattr(torch.version, 'hip') and torch.version.hip is not None:
                 logger.info("AMD ROCm detected")
                 return torch.device("cuda")  # ROCm uses cuda API
@@ -97,10 +96,10 @@ class RerankerModel:
                 self.model.eval()
                 
                 # Save locally if needed
-                if model_dir and not os.path.exists(os.path.join(model_dir, "config.json")):
-                    logger.info(f"Saving model to local directory: {model_dir}")
-                    self.tokenizer.save_pretrained(model_dir)
-                    self.model.save_pretrained(model_dir)
+                if self.model_dir and not os.path.exists(os.path.join(self.model_dir, "config.json")):
+                    logger.info(f"Saving model to local directory: {self.model_dir}")
+                    self.tokenizer.save_pretrained(self.model_dir)
+                    self.model.save_pretrained(self.model_dir)
                     
                 # Set flag for direct inference
                 self._use_direct_inference = True
