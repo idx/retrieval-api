@@ -3,13 +3,14 @@ import time
 import logging
 from typing import List, Optional, Dict, Any
 from datetime import datetime
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 import torch
 
-from model_loader import BGERerankerLoader
+from model_loader import ModelManager
 
 # Configure logging
 logging.basicConfig(
@@ -18,11 +19,46 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Global model manager instance
+model_manager: Optional[ModelManager] = None
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    global model_manager
+    try:
+        default_model = os.getenv("RERANKER_MODEL_NAME", "maidalun1020/bce-reranker-base_v1")
+        models_base_dir = os.getenv("RERANKER_MODELS_DIR", "/app/models")
+        
+        logger.info(f"Initializing model manager with default model: {default_model}")
+        model_manager = ModelManager(
+            default_model=default_model,
+            models_base_dir=models_base_dir
+        )
+        
+        # Pre-load default model
+        logger.info("Pre-loading default model...")
+        model_manager.load_model(default_model)
+        logger.info("Model manager initialized successfully")
+    except Exception as e:
+        logger.error(f"Failed to initialize model manager: {str(e)}")
+        raise
+    
+    yield
+    
+    # Shutdown
+    if model_manager:
+        model_manager.clear_cache()
+        logger.info("Model manager cleaned up")
+
+
 # Initialize FastAPI app
 app = FastAPI(
     title="Rerank API",
     description="OpenAI-compatible Rerank API using BGE Reranker",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # Add CORS middleware
@@ -34,9 +70,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Global model loader instance
-model_loader: Optional[BGERerankerLoader] = None
-
 
 class RerankRequest(BaseModel):
     model: str = Field(default="bce-reranker-base_v1", description="Model to use for reranking")
@@ -46,7 +79,8 @@ class RerankRequest(BaseModel):
     return_documents: bool = Field(default=False, description="Whether to return document texts")
     max_chunks_per_doc: Optional[int] = Field(default=None, description="Maximum chunks per document")
     
-    @validator('documents')
+    @field_validator('documents')
+    @classmethod
     def validate_documents(cls, v):
         if not v:
             raise ValueError("Documents list cannot be empty")
@@ -54,14 +88,14 @@ class RerankRequest(BaseModel):
             raise ValueError("Maximum 1000 documents allowed")
         return v
     
-    @validator('top_n')
-    def validate_top_n(cls, v, values):
-        if v is not None:
-            if v < 1:
+    @model_validator(mode='after')
+    def validate_top_n(self):
+        if self.top_n is not None:
+            if self.top_n < 1:
                 raise ValueError("top_n must be at least 1")
-            if 'documents' in values and v > len(values['documents']):
-                v = len(values['documents'])
-        return v
+            if self.documents and self.top_n > len(self.documents):
+                self.top_n = len(self.documents)
+        return self
 
 
 class RerankResult(BaseModel):
@@ -88,20 +122,6 @@ class ModelsResponse(BaseModel):
     data: List[ModelInfo]
 
 
-@app.on_event("startup")
-async def startup_event():
-    """Initialize model on startup"""
-    global model_loader
-    try:
-        model_name = os.getenv("RERANKER_MODEL_NAME", "maidalun1020/bce-reranker-base_v1")
-        model_dir = os.getenv("RERANKER_MODEL_DIR", "/app/models/bce-reranker-base_v1")
-        
-        logger.info(f"Loading reranker model: {model_name}")
-        model_loader = BGERerankerLoader(model_name=model_name, model_dir=model_dir)
-        logger.info("Model loaded successfully")
-    except Exception as e:
-        logger.error(f"Failed to load model: {str(e)}")
-        raise
 
 
 @app.get("/")
@@ -123,22 +143,28 @@ async def health_check():
     """Health check endpoint"""
     return {
         "status": "healthy",
-        "timestamp": datetime.utcnow().isoformat(),
-        "model_loaded": model_loader is not None,
-        "device": str(model_loader.device) if model_loader else "unknown"
+        "timestamp": datetime.now().isoformat(),
+        "model_manager_loaded": model_manager is not None,
+        "default_model": model_manager.default_model if model_manager else "unknown",
+        "loaded_models": list(model_manager.loaded_models.keys()) if model_manager else []
     }
 
 
 @app.get("/models", response_model=ModelsResponse)
 async def list_models():
     """List available models"""
-    models = [
-        ModelInfo(
-            id="bce-reranker-base_v1",
+    if not model_manager:
+        raise HTTPException(status_code=503, detail="Model manager not initialized")
+    
+    models = []
+    for model_name in model_manager.get_supported_models():
+        model_info = model_manager.get_model_info(model_name)
+        models.append(ModelInfo(
+            id=model_info["name"],
             created=int(time.time()),
-            owned_by="bce"
-        )
-    ]
+            owned_by="huggingface"
+        ))
+    
     return ModelsResponse(data=models)
 
 
@@ -149,15 +175,24 @@ async def rerank(
 ):
     """Rerank documents based on query relevance"""
     try:
-        if not model_loader:
-            raise HTTPException(status_code=503, detail="Model not loaded")
+        if not model_manager:
+            raise HTTPException(status_code=503, detail="Model manager not initialized")
+        
+        # Convert model name from short form to full name if needed
+        model_name = request.model
+        if model_name == "bce-reranker-base_v1":
+            model_name = "maidalun1020/bce-reranker-base_v1"
+        elif model_name == "bge-reranker-base":
+            model_name = "BAAI/bge-reranker-base"
+        elif model_name == "bge-reranker-large":
+            model_name = "BAAI/bge-reranker-large"
         
         # Log request info
-        logger.info(f"Rerank request - query length: {len(request.query)}, documents: {len(request.documents)}")
+        logger.info(f"Rerank request - model: {model_name}, query length: {len(request.query)}, documents: {len(request.documents)}")
         
         # Perform reranking
         start_time = time.time()
-        scores = model_loader.compute_scores(request.query, request.documents)
+        scores = model_manager.compute_scores(model_name, request.query, request.documents)
         
         # Create results with indices and scores
         results = []

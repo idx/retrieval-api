@@ -9,8 +9,10 @@ RUN apt-get update && apt-get install -y \
 # Set working directory
 WORKDIR /app
 
-# Create non-root user
-RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
+# Create non-root user with home directory
+RUN useradd -m -u 1000 appuser && \
+    mkdir -p /home/appuser/.cache/huggingface && \
+    chown -R appuser:appuser /app /home/appuser/.cache
 
 # Copy requirements first for better caching
 COPY --chown=appuser:appuser requirements.txt .
@@ -18,8 +20,8 @@ COPY --chown=appuser:appuser requirements.txt .
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Create models directory
-RUN mkdir -p models && chown -R appuser:appuser models
+# Create models directory with proper permissions
+RUN mkdir -p models && chmod 755 models && chown -R appuser:appuser models
 
 # Copy application files
 COPY --chown=appuser:appuser . .
@@ -35,7 +37,8 @@ ENV HOST=0.0.0.0
 ENV PORT=7987
 ENV WORKERS=1
 ENV RERANKER_MODEL_NAME=maidalun1020/bce-reranker-base_v1
-ENV RERANKER_MODEL_DIR=/app/models/bce-reranker-base_v1
+ENV RERANKER_MODELS_DIR=/app/models
+ENV HF_HOME=/home/appuser/.cache/huggingface
 
 # Run the application
 CMD ["python", "run.py"]

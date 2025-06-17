@@ -13,12 +13,23 @@ def client():
 
 
 @pytest.fixture
-def mock_model_loader():
-    """Create mock model loader"""
-    mock_loader = Mock()
-    mock_loader.device = torch.device("cpu")
-    mock_loader.compute_scores = Mock(return_value=[0.9, 0.3, 0.7])
-    return mock_loader
+def mock_model_manager():
+    """Create mock model manager"""
+    mock_manager = Mock()
+    mock_manager.default_model = "maidalun1020/bce-reranker-base_v1"
+    mock_manager.loaded_models = {"maidalun1020/bce-reranker-base_v1": Mock()}
+    mock_manager.compute_scores = Mock(return_value=[0.9, 0.3, 0.7])
+    mock_manager.get_supported_models = Mock(return_value=[
+        "maidalun1020/bce-reranker-base_v1",
+        "BAAI/bge-reranker-base",
+        "BAAI/bge-reranker-large"
+    ])
+    mock_manager.get_model_info = Mock(return_value={
+        "name": "bce-reranker-base_v1",
+        "description": "BGE Reranker Base Model v1",
+        "max_length": 512
+    })
+    return mock_manager
 
 
 class TestHealthEndpoints:
@@ -43,30 +54,31 @@ class TestHealthEndpoints:
         data = response.json()
         assert data["status"] == "healthy"
         assert "timestamp" in data
-        assert "model_loaded" in data
-        assert "device" in data
+        assert "model_manager_loaded" in data
+        assert "default_model" in data
     
-    def test_models_endpoint(self, client):
+    @patch('app.model_manager')
+    def test_models_endpoint(self, mock_manager, client, mock_model_manager):
         """Test models listing endpoint"""
-        response = client.get("/models")
+        mock_manager = mock_model_manager
+        
+        with patch('app.model_manager', mock_manager):
+            response = client.get("/models")
+        
         assert response.status_code == 200
         data = response.json()
         assert data["object"] == "list"
         assert "data" in data
         assert len(data["data"]) > 0
-        assert data["data"][0]["id"] == "bce-reranker-base_v1"
-        assert data["data"][0]["object"] == "model"
-        assert data["data"][0]["owned_by"] == "bce"
 
 
 class TestRerankEndpoint:
     """Test rerank endpoint"""
     
-    @patch('app.model_loader')
-    def test_rerank_basic(self, mock_loader, client, mock_model_loader):
+    @patch('app.model_manager')
+    def test_rerank_basic(self, mock_manager, client, mock_model_manager):
         """Test basic rerank functionality"""
-        mock_loader = mock_model_loader
-        app.dependency_overrides = {}
+        mock_manager = mock_model_manager
         
         request_data = {
             "query": "What is machine learning?",
@@ -77,7 +89,7 @@ class TestRerankEndpoint:
             ]
         }
         
-        with patch('app.model_loader', mock_loader):
+        with patch('app.model_manager', mock_manager):
             response = client.post("/v1/rerank", json=request_data)
         
         assert response.status_code == 200
@@ -89,10 +101,10 @@ class TestRerankEndpoint:
         assert data["meta"]["total_documents"] == 3
         assert data["meta"]["returned_documents"] == 3
     
-    @patch('app.model_loader')
-    def test_rerank_with_top_n(self, mock_loader, client, mock_model_loader):
+    @patch('app.model_manager')
+    def test_rerank_with_top_n(self, mock_manager, client, mock_model_manager):
         """Test rerank with top_n parameter"""
-        mock_loader = mock_model_loader
+        mock_manager = mock_model_manager
         
         request_data = {
             "query": "What is machine learning?",
@@ -104,7 +116,7 @@ class TestRerankEndpoint:
             "top_n": 2
         }
         
-        with patch('app.model_loader', mock_loader):
+        with patch('app.model_manager', mock_manager):
             response = client.post("/v1/rerank", json=request_data)
         
         assert response.status_code == 200
@@ -112,10 +124,10 @@ class TestRerankEndpoint:
         assert len(data["results"]) == 2
         assert data["meta"]["returned_documents"] == 2
     
-    @patch('app.model_loader')
-    def test_rerank_with_return_documents(self, mock_loader, client, mock_model_loader):
+    @patch('app.model_manager')
+    def test_rerank_with_return_documents(self, mock_manager, client, mock_model_manager):
         """Test rerank with return_documents parameter"""
-        mock_loader = mock_model_loader
+        mock_manager = mock_model_manager
         
         request_data = {
             "query": "What is machine learning?",
@@ -127,7 +139,7 @@ class TestRerankEndpoint:
             "return_documents": True
         }
         
-        with patch('app.model_loader', mock_loader):
+        with patch('app.model_manager', mock_manager):
             response = client.post("/v1/rerank", json=request_data)
         
         assert response.status_code == 200
@@ -177,7 +189,7 @@ class TestRerankEndpoint:
     
     def test_rerank_model_not_loaded(self, client):
         """Test rerank when model is not loaded"""
-        with patch('app.model_loader', None):
+        with patch('app.model_manager', None):
             request_data = {
                 "query": "test",
                 "documents": ["doc1", "doc2"]

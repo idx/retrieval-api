@@ -1,70 +1,154 @@
 # Rerank API Service
 
-OpenAI互換のRerank APIサービス。BGE Rerankerモデル（bce-reranker-base_v1）を使用して文書の再ランキング機能を提供します。
+[🇯🇵 日本語](README.ja.md) | 🇺🇸 English
 
-## 機能
+OpenAI-compatible Rerank API service using BGE Reranker models for high-precision document reranking.
 
-- OpenAI API互換のRerankエンドポイント
-- BGE Rerankerモデルによる高精度な文書再ランキング
-- GPU/CPU自動検出とサポート
-- Dockerによる簡単なデプロイメント
-- 非同期処理による高速レスポンス
+## Features
 
-## クイックスタート
+- OpenAI-compatible Rerank API endpoints
+- Dynamic model selection via API requests
+- High-precision document reranking using BGE Reranker models
+- GPU/CPU auto-detection and support
+- Easy deployment with Docker
+- Async processing for high-speed responses
+- Model caching and efficient memory management
 
-### Dockerを使用した起動
+## Supported Models
+
+This API supports multiple reranking models that can be dynamically selected:
+
+| Model Name | Short Name | Description |
+|-----------|------------|-------------|
+| maidalun1020/bce-reranker-base_v1 | bce-reranker-base_v1 | BGE Reranker Base Model v1 (Default) |
+| BAAI/bge-reranker-base | bge-reranker-base | BGE Reranker Base Model |
+| BAAI/bge-reranker-large | bge-reranker-large | BGE Reranker Large Model |
+
+## Quick Start
+
+### Docker Deployment
+
+#### Automatic GPU/CPU Detection
+
+Use the provided start script for automatic detection:
 
 ```bash
-# ビルド
+# Make script executable
+chmod +x start.sh
+
+# Start with automatic GPU/CPU detection
+./start.sh
+```
+
+#### Manual Docker Commands
+
+```bash
+# Build
 docker build -t rerank-api .
 
-# 起動（GPU使用）
+# Run with GPU support (if available)
 docker run -d --name rerank-api \
   -p 7987:7987 \
   --gpus all \
   rerank-api
 
-# または Docker Compose を使用
-docker-compose up -d
+# Run with CPU only
+docker run -d --name rerank-api \
+  -p 7987:7987 \
+  -e CUDA_VISIBLE_DEVICES=-1 \
+  rerank-api
 ```
 
-### ローカル環境での起動
+#### Docker Compose
 
 ```bash
-# 仮想環境作成
-python -m venv venv
-source venv/bin/activate  # Windowsの場合: venv\Scripts\activate
+# With GPU support
+docker-compose up -d
 
-# 依存関係インストール
+# CPU only mode
+docker-compose -f docker-compose.cpu.yml up -d
+```
+
+### Local Development
+
+```bash
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+
+# Install dependencies
 pip install -r requirements.txt
 
-# サービス起動
+# Start service
 python run.py
 ```
 
-## API使用方法
+## API Usage
 
-### Rerankエンドポイント
+### Available Models
 
-文書を再ランキングします：
+Check available models:
+
+```bash
+curl http://localhost:7987/models
+```
+
+### Rerank Endpoint
+
+Rerank documents with dynamic model selection:
+
+#### Using Default Model
 
 ```bash
 curl -X POST "http://localhost:7987/v1/rerank" \
   -H "Content-Type: application/json" \
   -d '{
     "model": "bce-reranker-base_v1",
-    "query": "機械学習とは何ですか？",
+    "query": "What is machine learning?",
     "documents": [
-      "機械学習は人工知能の一分野です。",
-      "今日は良い天気です。",
-      "ディープラーニングは機械学習の手法の一つです。"
+      "Machine learning is a branch of artificial intelligence.",
+      "Today is a beautiful sunny day.",
+      "Deep learning is a method of machine learning."
     ],
     "top_n": 2,
     "return_documents": true
   }'
 ```
 
-レスポンス例：
+#### Using Different Models
+
+```bash
+# Using large model
+curl -X POST "http://localhost:7987/v1/rerank" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "bge-reranker-large",
+    "query": "What is artificial intelligence?",
+    "documents": [
+      "AI simulates human intelligence in machines.",
+      "The weather forecast shows rain tomorrow.",
+      "Machine learning is a subset of AI technology."
+    ],
+    "top_n": 2,
+    "return_documents": true
+  }'
+
+# Using full model name
+curl -X POST "http://localhost:7987/v1/rerank" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "BAAI/bge-reranker-base",
+    "query": "Natural language processing",
+    "documents": [
+      "NLP helps computers understand human language.",
+      "Cooking pasta requires boiling water first.",
+      "Text analysis is a core component of NLP."
+    ]
+  }'
+```
+
+#### Response Example
+
 ```json
 {
   "model": "bce-reranker-base_v1",
@@ -72,12 +156,12 @@ curl -X POST "http://localhost:7987/v1/rerank" \
     {
       "index": 0,
       "relevance_score": 0.95,
-      "document": "機械学習は人工知能の一分野です。"
+      "document": "Machine learning is a branch of artificial intelligence."
     },
     {
       "index": 2,
       "relevance_score": 0.87,
-      "document": "ディープラーニングは機械学習の手法の一つです。"
+      "document": "Deep learning is a method of machine learning."
     }
   ],
   "meta": {
@@ -89,103 +173,203 @@ curl -X POST "http://localhost:7987/v1/rerank" \
 }
 ```
 
-### その他のエンドポイント
+### Other Endpoints
 
-#### ヘルスチェック
+#### Health Check
 ```bash
 curl http://localhost:7987/health
 ```
 
-#### モデル一覧
+#### Model List
 ```bash
 curl http://localhost:7987/models
 ```
 
-## API仕様
+## API Specification
 
 ### POST /v1/rerank
 
-#### リクエストパラメータ
+#### Request Parameters
 
-| パラメータ | 型 | 必須 | 説明 |
-|-----------|-----|------|------|
-| model | string | いいえ | 使用するモデル（デフォルト: "bce-reranker-base_v1"） |
-| query | string | はい | ランキングの基準となるクエリ文字列 |
-| documents | array[string] | はい | ランキング対象の文書リスト（最大1000件） |
-| top_n | integer | いいえ | 返却する上位結果数 |
-| return_documents | boolean | いいえ | 文書テキストを含めるか（デフォルト: false） |
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| model | string | No | Model to use (short name or full name, default: "bce-reranker-base_v1") |
+| query | string | Yes | Query string for ranking documents |
+| documents | array[string] | Yes | List of documents to rerank (max 1000) |
+| top_n | integer | No | Number of top results to return |
+| return_documents | boolean | No | Whether to include document texts (default: false) |
 
-#### レスポンス
+#### Response
 
-| フィールド | 型 | 説明 |
-|-----------|-----|------|
-| model | string | 使用されたモデル名 |
-| results | array | ランキング結果のリスト |
-| results[].index | integer | 元の文書リストでのインデックス |
-| results[].relevance_score | float | 関連性スコア（0-1） |
-| results[].document | string | 文書テキスト（return_documents=trueの場合） |
-| meta | object | メタデータ |
+| Field | Type | Description |
+|-------|------|-------------|
+| model | string | Model name used |
+| results | array | List of ranking results |
+| results[].index | integer | Original document index |
+| results[].relevance_score | float | Relevance score (0-1) |
+| results[].document | string | Document text (if return_documents=true) |
+| meta | object | Metadata |
 
-## 環境変数
+## Environment Variables
 
-| 変数名 | デフォルト値 | 説明 |
-|--------|-------------|------|
-| HOST | 0.0.0.0 | サービスホスト |
-| PORT | 7987 | サービスポート |
-| WORKERS | 1 | ワーカー数 |
-| RERANKER_MODEL_NAME | maidalun1020/bce-reranker-base_v1 | モデル名 |
-| RERANKER_MODEL_DIR | /app/models/bce-reranker-base_v1 | モデル保存ディレクトリ |
+| Variable | Default | Description |
+|----------|---------|-------------|
+| HOST | 0.0.0.0 | Service host |
+| PORT | 7987 | Service port |
+| WORKERS | 1 | Number of workers |
+| RERANKER_MODEL_NAME | maidalun1020/bce-reranker-base_v1 | Default model name |
+| RERANKER_MODELS_DIR | /app/models | Base directory for model storage |
 
-## 開発
+## Development
 
-### テスト実行
+### Running Tests
 
 ```bash
-# API動作テスト
+# Run all tests
 pytest tests/
 
-# 個別のテスト
+# Run with coverage
+pytest tests/ --cov=.
+
+# Run specific test
 python -m pytest tests/test_api.py -v
 ```
 
-### コード品質チェック
+### Code Quality
 
 ```bash
-# フォーマット
+# Format code
 black .
 
-# Linting
+# Lint code
 ruff check .
 
-# 型チェック
+# Type checking
 mypy app.py
 ```
 
-## トラブルシューティング
+### Test API Manually
 
-### GPU が認識されない場合
+Use the included test script:
 
-1. NVIDIA ドライバーの確認：
 ```bash
-nvidia-smi
+python test_api_example.py
 ```
 
-2. Docker で GPU を使用する場合：
+## Docker Configuration
+
+### Build Arguments
+
 ```bash
-# NVIDIA Container Toolkit のインストール確認
+# Build with specific Python version
+docker build --build-arg PYTHON_VERSION=3.10 -t rerank-api .
+
+# Build for production
+docker build --target production -t rerank-api:prod .
+```
+
+### GPU Support
+
+For GPU support, ensure you have:
+
+1. NVIDIA drivers installed
+2. NVIDIA Container Toolkit installed
+3. Docker configured for GPU access
+
+```bash
+# Test GPU access
 docker run --rm --gpus all nvidia/cuda:11.8.0-base-ubuntu22.04 nvidia-smi
 ```
 
-### モデルのダウンロードが遅い場合
+## Model Management
 
-Hugging Face のミラーを使用：
+### Model Caching
+
+Models are automatically cached after first load. The cache directory structure:
+
+```
+/app/models/
+├── maidalun1020_bce-reranker-base_v1/
+├── BAAI_bge-reranker-base/
+└── BAAI_bge-reranker-large/
+```
+
+### Custom Models
+
+To add custom models, update the `supported_models` dictionary in `model_loader.py`:
+
+```python
+self.supported_models = {
+    "your-custom/model-name": {
+        "name": "custom-model",
+        "description": "Your Custom Model",
+        "max_length": 512
+    }
+}
+```
+
+## Performance Optimization
+
+### GPU Configuration
+
+- NVIDIA drivers (latest version recommended)
+- CUDA 11.8+ support
+- GPU memory 4GB+ recommended
+
+### Memory Management
+
+- Efficient model caching
+- Batch processing for improved throughput
+- Configurable worker count
+- Automatic memory cleanup
+
+## Troubleshooting
+
+### GPU Not Detected
+
+If you encounter the error: `could not select device driver "nvidia" with capabilities: [[gpu]]`
+
+1. Use CPU-only mode:
+```bash
+# Using docker-compose
+docker-compose -f docker-compose.cpu.yml up -d
+
+# Using docker run
+docker run -d --name rerank-api \
+  -p 7987:7987 \
+  -e CUDA_VISIBLE_DEVICES=-1 \
+  rerank-api
+
+# Or use the automatic start script
+./start.sh
+```
+
+2. To fix GPU support, check:
+```bash
+# Check NVIDIA drivers
+nvidia-smi
+
+# Install NVIDIA Container Toolkit
+distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
+curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | sudo apt-key add -
+curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | sudo tee /etc/apt/sources.list.d/nvidia-docker.list
+sudo apt-get update && sudo apt-get install -y nvidia-docker2
+sudo systemctl restart docker
+
+# Verify Docker GPU support
+docker run --rm --gpus all nvidia/cuda:11.8.0-base-ubuntu22.04 nvidia-smi
+```
+
+### Slow Model Downloads
+
+Use Hugging Face mirrors:
 ```bash
 export HF_ENDPOINT=https://hf-mirror.com
 ```
 
-### メモリ不足エラー
+### Memory Issues
 
-Docker の場合、メモリ制限を増やす：
+For Docker deployments, increase memory limits:
 ```yaml
 deploy:
   resources:
@@ -193,14 +377,93 @@ deploy:
       memory: 8G
 ```
 
-## ライセンス
+### Model Loading Errors
 
-このプロジェクトは MIT ライセンスのもとで公開されています。
+1. Check disk space
+2. Verify network connectivity to Hugging Face Hub
+3. Check model name spelling
+4. Review logs for detailed error messages
 
-## 貢献
+## API Examples
 
-プルリクエストを歓迎します。大きな変更の場合は、まず Issue を作成して変更内容を議論してください。
+### Python Client Example
 
-## サポート
+```python
+import requests
 
-問題が発生した場合は、GitHub の Issue ページで報告してください。
+def rerank_documents(query, documents, model="bce-reranker-base_v1"):
+    response = requests.post("http://localhost:7987/v1/rerank", json={
+        "model": model,
+        "query": query,
+        "documents": documents,
+        "top_n": 5,
+        "return_documents": True
+    })
+    return response.json()
+
+# Example usage
+query = "machine learning algorithms"
+docs = [
+    "Machine learning is a subset of artificial intelligence",
+    "Today's weather is sunny and warm",
+    "Neural networks are powerful ML algorithms",
+    "Cooking requires fresh ingredients"
+]
+
+results = rerank_documents(query, docs)
+for result in results["results"]:
+    print(f"Score: {result['relevance_score']:.3f} - {result['document']}")
+```
+
+### JavaScript/Node.js Example
+
+```javascript
+const axios = require('axios');
+
+async function rerankDocuments(query, documents, model = 'bce-reranker-base_v1') {
+  try {
+    const response = await axios.post('http://localhost:7987/v1/rerank', {
+      model,
+      query,
+      documents,
+      top_n: 5,
+      return_documents: true
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+// Example usage
+const query = "machine learning algorithms";
+const docs = [
+  "Machine learning is a subset of artificial intelligence",
+  "Today's weather is sunny and warm",
+  "Neural networks are powerful ML algorithms",
+  "Cooking requires fresh ingredients"
+];
+
+rerankDocuments(query, docs).then(results => {
+  results.results.forEach(result => {
+    console.log(`Score: ${result.relevance_score.toFixed(3)} - ${result.document}`);
+  });
+});
+```
+
+## License
+
+This project is released under the MIT License.
+
+## Contributing
+
+Pull requests are welcome. For major changes, please open an issue first to discuss the proposed changes.
+
+## Support
+
+If you encounter any issues, please report them on the GitHub Issues page.
+
+---
+
+**Note**: This service provides document reranking capabilities and is designed for production use with proper monitoring and scaling considerations.

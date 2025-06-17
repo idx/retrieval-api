@@ -1,0 +1,51 @@
+FROM python:3.10-slim
+
+# Build argument for CPU/GPU mode
+ARG COMPUTE_MODE=auto
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Create non-root user
+RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
+
+# Copy requirements files
+COPY --chown=appuser:appuser requirements*.txt ./
+
+# Install Python dependencies based on compute mode
+RUN if [ "$COMPUTE_MODE" = "cpu" ]; then \
+        echo "Installing CPU-only dependencies..." && \
+        pip install --no-cache-dir torch==2.1.1+cpu --index-url https://download.pytorch.org/whl/cpu && \
+        pip install --no-cache-dir -r requirements.txt --no-deps; \
+    else \
+        echo "Installing dependencies with GPU support..." && \
+        pip install --no-cache-dir -r requirements.txt; \
+    fi
+
+# Create models directory
+RUN mkdir -p models && chown -R appuser:appuser models
+
+# Copy application files
+COPY --chown=appuser:appuser . .
+
+# Switch to non-root user
+USER appuser
+
+# Expose port
+EXPOSE 7987
+
+# Set environment variables
+ENV HOST=0.0.0.0
+ENV PORT=7987
+ENV WORKERS=1
+ENV RERANKER_MODEL_NAME=maidalun1020/bce-reranker-base_v1
+ENV RERANKER_MODELS_DIR=/app/models
+
+# Run the application
+CMD ["python", "run.py"]
