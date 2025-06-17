@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  rerank-api:
+    build: .
+    image: rerank-api:latest
+    container_name: rerank-api
+    ports:
+      - "7987:7987"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=7987
+      - WORKERS=1
+      - RERANKER_MODEL_NAME=maidalun1020/bce-reranker-base_v1
+      - RERANKER_MODEL_DIR=/app/models/bce-reranker-base_v1
+      - TRANSFORMERS_CACHE=/root/.cache/huggingface
+    volumes:
+      - ./models:/app/models
+      - huggingface-cache:/root/.cache/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7987/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  huggingface-cache:
+    driver: local

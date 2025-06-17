@@ -1,0 +1,91 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+
+# Virtual environments
+bin/
+lib/
+lib64/
+include/
+share/
+pyvenv.cfg
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-*
+
+# Models and data
+models/
+*.bin
+*.pth
+*.pt
+*.onnx
+*.safetensors
+
+# Logs
+*.log
+logs/
+*.out
+*.err
+
+# Environment files
+.env
+.env.*
+*.env
+
+# Testing
+.coverage
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+pytest_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Package files
+*.tar.gz
+*.zip
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Project specific
+CLAUDE.md
+*.bak
+*.tmp
+temp/
+tmp/
+
+# Docker volumes
+data/
+volumes/
+
+# Hugging Face cache
+.cache/
+huggingface/

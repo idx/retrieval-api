@@ -1,0 +1,56 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Git
+.git/
+.gitignore
+
+# Docker
+.dockerignore
+Dockerfile
+docker-compose*.yml
+
+# Documentation
+*.md
+docs/
+LICENSE
+
+# Testing
+tests/
+test_*.py
+*_test.py
+.coverage
+htmlcov/
+
+# Models (will be downloaded at runtime)
+models/
+
+# Logs
+*.log
+logs/
+
+# Environment files
+.env
+.env.*
