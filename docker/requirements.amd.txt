@@ -3,7 +3,7 @@ uvicorn[standard]==0.24.0
 pydantic==2.5.0
 # PyTorch with ROCm support - will be pre-installed in base image
 transformers==4.40.0
-sentence-transformers==2.7.0
+sentence-transformers==4.1.0
 numpy==1.26.2
 python-multipart==0.0.6
 httpx==0.25.2

@@ -4,7 +4,7 @@ pydantic==2.5.0
 # CPU-only PyTorch
 torch==2.1.1+cpu --index-url https://download.pytorch.org/whl/cpu
 transformers==4.36.0
-sentence-transformers==2.2.2
+sentence-transformers==4.1.0
 numpy==1.26.2
 python-multipart==0.0.6
 httpx==0.25.2
