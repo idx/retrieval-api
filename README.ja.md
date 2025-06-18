@@ -2,102 +2,166 @@
 
 🇯🇵 日本語 | [🇺🇸 English](README.md)
 
-OpenAI互換のRerank/Embedding APIサービス。BGE Rerankerモデルを使用した文書の再ランキングとsentence-transformersを使用したテキスト埋め込み生成機能を提供します。
+OpenAI互換のRerank/Embedding APIサービス。BGE RerankerモデルとEmbeddingモデルを使用した文書の再ランキングとテキスト埋め込み生成機能を提供します。
 
 ## 機能
 
-- OpenAI API互換のRerankおよびEmbeddingエンドポイント
-- APIリクエストによる動的なモデル選択
-- BGE Rerankerモデルによる高精度な文書再ランキング
-- sentence-transformersによるテキスト埋め込み生成
-- マルチGPUサポート（NVIDIA CUDA、AMD ROCm）と自動検出
-- CPUフォールバックサポート
-- Dockerによる簡単なデプロイメント
-- 非同期処理による高速レスポンス
-- モデルキャッシュと効率的なメモリ管理
+- **OpenAI API互換**: RerankおよびEmbeddingエンドポイント
+- **日本語対応**: 日本語専用の高性能モデルをサポート
+- **多言語対応**: 100以上の言語に対応したモデル
+- **動的モデル選択**: APIリクエストによるモデル選択
+- **マルチGPUサポート**: NVIDIA CUDA、AMD ROCm、CPU自動検出
+- **Dockerデプロイメント**: 複数のDocker設定ファイル
+- **高速レスポンス**: 非同期処理とモデルキャッシュ
+- **プロキシ対応**: 企業環境向けHTTP/HTTPSプロキシサポート
+
+## サポートモデル
+
+### Reranking（再ランキング）モデル
+
+#### 日本語専用モデル
+
+| モデル名 | 短縮名 | 最大長 | サイズ | 説明 |
+|---------|-------|-------|------|------|
+| hotchpotch/japanese-reranker-cross-encoder-large-v1 | japanese-reranker-large | 512 | 334MB | 日本語最高性能 |
+| hotchpotch/japanese-reranker-cross-encoder-base-v1 | japanese-reranker-base | 512 | 111MB | 日本語バランス型 |
+| hotchpotch/japanese-reranker-cross-encoder-small-v1 | japanese-reranker-small | 512 | 67MB | 高速推論 |
+| hotchpotch/japanese-bge-reranker-v2-m3-v1 | japanese-bge-v2-m3 | 8192 | ~500MB | 日本語特化版 |
+
+#### 多言語モデル
+
+| モデル名 | 短縮名 | 最大長 | サイズ | 説明 |
+|---------|-------|-------|------|------|
+| jinaai/jina-reranker-v2-base-multilingual | jina-reranker-v2-multilingual | 1024 | 278MB | 100+言語対応 **デフォルト** |
+| BAAI/bge-reranker-v2-m3 | bge-reranker-v2-m3 | 32000 | ~600MB | 32kトークン対応 |
+| Alibaba-NLP/gte-multilingual-reranker-base | gte-multilingual-reranker | 8192 | 560MB | 70+言語対応 |
+| mixedbread-ai/mxbai-rerank-large-v1 | mxbai-rerank-large | 8192 | 1.5GB | 高性能 |
+| Cohere/rerank-multilingual-v3.0 | cohere-rerank-multilingual | 4096 | ~400MB | 商用グレード |
+
+### Embedding（埋め込み）モデル
+
+#### 日本語専用モデル
+
+| モデル名 | 短縮名 | 最大長 | 次元 | 説明 |
+|---------|-------|-------|-----|------|
+| cl-nagoya/ruri-large | ruri-large | 512 | 1024 | JMTEB最高性能 |
+| cl-nagoya/ruri-base | ruri-base | 512 | 768 | 日本語バランス型 |
+| MU-Kindai/Japanese-SimCSE-BERT-large-unsup | japanese-simcse-large | 512 | 1024 | 教師なし学習 |
+| sonoisa/sentence-luke-japanese-base-lite | luke-japanese-base | 512 | 768 | 知識強化型 |
+| pkshatech/GLuCoSE-base-ja-v2 | glucose-ja-v2 | 512 | 768 | 企業開発 |
+
+#### 多言語モデル
+
+| モデル名 | 短縮名 | 最大長 | 次元 | 説明 |
+|---------|-------|-------|-----|------|
+| BAAI/bge-m3 | bge-m3 | 8192 | 1024 | **デフォルト** |
+| nvidia/NV-Embed-v2 | nv-embed-v2 | 32768 | 4096 | SOTA性能 |
+| intfloat/e5-mistral-7b-instruct | e5-mistral-7b | 32768 | 4096 | 高品質 |
+| mixedbread-ai/mxbai-embed-large-v1 | mxbai-embed-large | 512 | 1024 | 本番運用 |
 
 ## クイックスタート
 
-### Dockerを使用した起動
-
-#### 自動GPU/CPU検出
-
-提供されているスクリプトで自動検出：
+### Docker使用
 
 ```bash
-# スクリプトに実行権限を付与
-chmod +x start.sh
-
-# GPU/CPUを自動検出して起動
-./start.sh
-```
-
-#### 手動Dockerコマンド
-
-```bash
-# ビルド
+# 基本構築と実行
 docker build -t rerank-api .
+docker run -d --name rerank-api -p 7987:7987 --gpus all rerank-api
 
-# GPU使用（利用可能な場合）
-docker run -d --name rerank-api \
-  -p 7987:7987 \
-  --gpus all \
-  rerank-api
+# プロキシ設定付きビルド
+docker build \
+  --build-arg HTTP_PROXY=http://proxy.company.com:8080 \
+  --build-arg HTTPS_PROXY=http://proxy.company.com:8080 \
+  --build-arg NO_PROXY=localhost,127.0.0.1 \
+  -t rerank-api .
 
-# CPU専用モード
-docker run -d --name rerank-api \
-  -p 7987:7987 \
-  -e CUDA_VISIBLE_DEVICES=-1 \
-  rerank-api
+# AMD GPU用
+docker build -f docker/Dockerfile.amd -t rerank-api:amd .
+
+# CPU専用
+docker build -f docker/Dockerfile.flexible --build-arg COMPUTE_MODE=cpu -t rerank-api:cpu .
 ```
 
-#### Docker Compose
+### Docker Compose
 
 ```bash
-# GPU使用
+# NVIDIA GPU
 docker-compose up -d
 
-# CPU専用モード
-docker-compose -f docker-compose.cpu.yml up -d
+# プロキシ設定
+export HTTP_PROXY=http://proxy.company.com:8080
+export HTTPS_PROXY=http://proxy.company.com:8080
+export NO_PROXY=localhost,127.0.0.1
+docker-compose up -d
+
+# AMD GPU
+docker-compose -f docker/docker-compose.amd.yml up -d
+
+# CPU専用
+docker-compose -f docker/docker-compose.cpu.yml up -d
 ```
 
-### ローカル環境での起動
+### ローカル開発
 
 ```bash
-# 仮想環境作成
 python -m venv venv
-source venv/bin/activate  # Windowsの場合: venv\Scripts\activate
-
-# 依存関係インストール
+source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-
-# サービス起動
 python run.py
 ```
 
 ## API使用方法
 
-### 対応モデル
+### 利用可能なモデル確認
 
-このAPIは複数のリランキングモデルに対応しています：
+```bash
+curl http://localhost:7987/models
+```
 
-| モデル名 | 短縮名 | 説明 |
-|---------|-------|------|
-| maidalun1020/bce-reranker-base_v1 | bce-reranker-base_v1 | BGE Reranker Base Model v1（デフォルト） |
-| BAAI/bge-reranker-base | bge-reranker-base | BGE Reranker Base Model |
-| BAAI/bge-reranker-large | bge-reranker-large | BGE Reranker Large Model |
+### Rerank API
 
-### Rerankエンドポイント
+#### 日本語高性能モデル使用
 
-文書を再ランキングします。モデルはAPIリクエストで動的に指定できます：
-
-#### デフォルトモデル使用例
 ```bash
 curl -X POST "http://localhost:7987/v1/rerank" \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "bce-reranker-base_v1",
-    "query": "機械学習とは何ですか？",
+    "model": "japanese-reranker-large",
+    "query": "人工知能とは何ですか？",
+    "documents": [
+      "AIは機械で人間の知能を模倣します。",
+      "明日の天気予報は雨です。",
+      "機械学習はAI技術の一部です。"
+    ],
+    "top_n": 2,
+    "return_documents": true
+  }'
+```
+
+#### 日本語バランス型モデル使用
+
+```bash
+curl -X POST "http://localhost:7987/v1/rerank" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "japanese-reranker-base",
+    "query": "自然言語処理",
+    "documents": [
+      "NLPはコンピュータが人間の言語を理解するのを助けます。",
+      "パスタを茹でるにはまずお湯を沸かします。",
+      "テキスト解析はNLPの中核的な要素です。"
+    ]
+  }'
+```
+
+#### 多言語モデル使用
+
+```bash
+curl -X POST "http://localhost:7987/v1/rerank" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "jina-reranker-v2-multilingual",
+    "query": "機械学習アルゴリズム",
     "documents": [
       "機械学習は人工知能の一分野です。",
       "今日は良い天気です。",
@@ -108,84 +172,82 @@ curl -X POST "http://localhost:7987/v1/rerank" \
   }'
 ```
 
-#### 異なるモデル使用例
+### Embedding API
+
+#### 日本語高性能モデル使用
+
 ```bash
-curl -X POST "http://localhost:7987/v1/rerank" \
+curl -X POST "http://localhost:7987/v1/embeddings" \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "bge-reranker-large",
-    "query": "What is machine learning?",
-    "documents": [
-      "Machine learning is a branch of artificial intelligence.",
-      "The weather is nice today.",
-      "Deep learning is a method of machine learning."
-    ],
-    "top_n": 2,
-    "return_documents": true
+    "model": "ruri-large",
+    "input": "自然言語処理は人工知能の重要な分野です。"
   }'
 ```
 
-レスポンス例：
-```json
-{
-  "model": "bce-reranker-base_v1",
-  "results": [
-    {
-      "index": 0,
-      "relevance_score": 0.95,
-      "document": "機械学習は人工知能の一分野です。"
-    },
-    {
-      "index": 2,
-      "relevance_score": 0.87,
-      "document": "ディープラーニングは機械学習の手法の一つです。"
-    }
-  ],
-  "meta": {
-    "api_version": "v1",
-    "processing_time_ms": 145,
-    "total_documents": 3,
-    "returned_documents": 2
-  }
-}
-```
+#### 日本語バランス型モデル使用
 
-### その他のエンドポイント
-
-#### ヘルスチェック
 ```bash
-curl http://localhost:7987/health
+curl -X POST "http://localhost:7987/v1/embeddings" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "ruri-base",
+    "input": "日本語のテキスト埋め込みを生成します。"
+  }'
 ```
 
-#### モデル一覧
+#### 多言語デフォルトモデル使用
+
 ```bash
-curl http://localhost:7987/models
+curl -X POST "http://localhost:7987/v1/embeddings" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "bge-m3",
+    "input": [
+      "最初の埋め込み対象テキスト",
+      "2番目の埋め込み対象テキスト",
+      "3番目の埋め込み対象テキスト"
+    ]
+  }'
 ```
 
-## API仕様
+## Docker設定
 
-### POST /v1/rerank
+### Dockerファイル構造
 
-#### リクエストパラメータ
+```
+docker/
+├── Dockerfile                  # 標準NVIDIA GPU用
+├── Dockerfile.amd             # AMD ROCm GPU用
+├── Dockerfile.flexible        # CPU/GPU柔軟対応
+├── docker-compose.yml         # 標準compose
+├── docker-compose.amd.yml     # AMD GPU compose
+├── docker-compose.cpu.yml     # CPU専用compose
+├── requirements.txt           # 標準要件
+├── requirements.amd.txt       # AMD専用要件
+└── requirements-cpu.txt       # CPU専用要件
+```
 
-| パラメータ | 型 | 必須 | 説明 |
-|-----------|-----|------|------|
-| model | string | いいえ | 使用するモデル（短縮名または完全名、デフォルト: "bce-reranker-base_v1"） |
-| query | string | はい | ランキングの基準となるクエリ文字列 |
-| documents | array[string] | はい | ランキング対象の文書リスト（最大1000件） |
-| top_n | integer | いいえ | 返却する上位結果数 |
-| return_documents | boolean | いいえ | 文書テキストを含めるか（デフォルト: false） |
+**注意**: メインの`docker-compose.yml`は便利のためルートディレクトリにも配置されています。
 
-#### レスポンス
+### ビルド引数
 
-| フィールド | 型 | 説明 |
-|-----------|-----|------|
-| model | string | 使用されたモデル名 |
-| results | array | ランキング結果のリスト |
-| results[].index | integer | 元の文書リストでのインデックス |
-| results[].relevance_score | float | 関連性スコア（0-1） |
-| results[].document | string | 文書テキスト（return_documents=trueの場合） |
-| meta | object | メタデータ |
+```bash
+# プロキシサポート付きビルド
+docker build \
+  --build-arg HTTP_PROXY=http://proxy.company.com:8080 \
+  --build-arg HTTPS_PROXY=http://proxy.company.com:8080 \
+  --build-arg NO_PROXY=localhost,127.0.0.1 \
+  -t rerank-api .
+
+# AMD GPU版ビルド
+docker build -f docker/Dockerfile.amd -t rerank-api:amd .
+
+# CPU専用版ビルド
+docker build -f docker/Dockerfile.flexible \
+  --build-arg COMPUTE_MODE=cpu \
+  -t rerank-api:cpu .
+```
 
 ## 環境変数
 
@@ -194,136 +256,151 @@ curl http://localhost:7987/models
 | HOST | 0.0.0.0 | サービスホスト |
 | PORT | 7987 | サービスポート |
 | WORKERS | 1 | ワーカー数 |
-| RERANKER_MODEL_NAME | maidalun1020/bce-reranker-base_v1 | デフォルトモデル名 |
-| RERANKER_MODELS_DIR | /app/models | モデル保存ベースディレクトリ |
+| RERANKER_MODEL_NAME | jinaai/jina-reranker-v2-base-multilingual | デフォルトrerankerモデル |
+| RERANKER_MODELS_DIR | /app/models | モデル保存ディレクトリ |
+| EMBEDDING_MODEL_NAME | BAAI/bge-m3 | デフォルトembeddingモデル |
+| HTTP_PROXY | - | HTTPプロキシサーバーURL |
+| HTTPS_PROXY | - | HTTPSプロキシサーバーURL |
+| NO_PROXY | - | プロキシをバイパスするホストのリスト |
 
-## 開発
+## テスト
 
 ### テスト実行
 
 ```bash
-# API動作テスト
+# 全テスト実行
 pytest tests/
 
-# 個別のテスト
+# カバレッジ付き
+pytest tests/ --cov=.
+
+# 個別テスト
 python -m pytest tests/test_api.py -v
+
+# API例テスト
+python tests/test_api_example.py
+
+# ハードウェア検出テスト
+bash tests/test_detection.sh
 ```
 
-### コード品質チェック
+### Docker設定テスト
+
+```bash
+# 異なるDocker設定のテスト
+docker-compose up -d                                      # NVIDIA GPU（ルート）
+docker-compose -f docker/docker-compose.yml up -d         # NVIDIA GPU（docker/）
+docker-compose -f docker/docker-compose.amd.yml up -d     # AMD GPU
+docker-compose -f docker/docker-compose.cpu.yml up -d     # CPU専用
+
+# 特定Dockerファイルでのテスト
+docker build -f docker/Dockerfile.amd -t test:amd .
+docker build -f docker/Dockerfile.flexible --build-arg COMPUTE_MODE=cpu -t test:cpu .
+```
+
+### コード品質
 
 ```bash
 # フォーマット
 black .
 
-# Linting
+# Lint
 ruff check .
 
 # 型チェック
 mypy app.py
 ```
 
+### 手動APIテスト
+
+付属のテストスクリプトを使用：
+
+```bash
+python tests/test_api_example.py
+```
+
+## パフォーマンス最適化
+
+### GPU設定
+
+#### NVIDIA GPU サポート
+- NVIDIAドライバー（最新版推奨）
+- CUDA 11.8以上対応
+- GPU memory 4GB以上推奨
+- Docker用NVIDIA Container Toolkit
+
+#### AMD GPU サポート  
+- ROCm 6.0以上対応
+- AMD GPUドライバー（AMDGPU-PROまたはオープンソース）
+- GPU memory 4GB以上推奨
+- AMD GPU デバイスアクセス用Docker設定（`/dev/kfd`、`/dev/dri`）
+
+#### 自動検出機能
+サービスは利用可能なGPUハードウェアを自動検出：
+- 🟢 NVIDIA GPU → CUDA加速を使用
+- 🔵 AMD GPU → ROCm加速を使用  
+- ⚪ GPU無し → CPUにフォールバック
+
+### メモリ管理
+
+- 効率的なモデルキャッシュ
+- スループット向上のためのバッチ処理
+- 設定可能なワーカー数
+- 自動メモリクリーンアップ
+
 ## トラブルシューティング
 
-### GPU が認識されない場合
+### GPUが認識されない場合
 
-エラー `could not select device driver "nvidia" with capabilities: [[gpu]]` が発生した場合：
-
-1. CPU専用モードを使用する：
+CPUモードを使用：
 ```bash
-# Docker Composeを使用
-docker-compose -f docker-compose.cpu.yml up -d
+# docker-compose使用
+docker-compose -f docker/docker-compose.cpu.yml up -d
 
-# Docker runを使用
+# docker run使用
 docker run -d --name rerank-api \
   -p 7987:7987 \
   -e CUDA_VISIBLE_DEVICES=-1 \
   rerank-api
-
-# または自動起動スクリプトを使用
-./start.sh
 ```
 
-2. GPUサポートを修正するには：
+GPUサポートの確認：
 ```bash
-# NVIDIAドライバーの確認
-nvidia-smi
-
-# NVIDIA Container Toolkitのインストール
-distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
-curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | sudo apt-key add -
-curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | sudo tee /etc/apt/sources.list.d/nvidia-docker.list
-sudo apt-get update && sudo apt-get install -y nvidia-docker2
-sudo systemctl restart docker
-
-# Docker GPUサポートの確認
+# GPU テスト
 docker run --rm --gpus all nvidia/cuda:11.8.0-base-ubuntu22.04 nvidia-smi
 ```
 
-### モデルのダウンロードが遅い場合
+### プロキシ環境での使用
 
-Hugging Face のミラーを使用：
+プロキシ設定の環境変数を設定：
 ```bash
-export HF_ENDPOINT=https://hf-mirror.com
-```
-
-### メモリ不足エラー
-
-Docker の場合、メモリ制限を増やす：
-```yaml
-deploy:
-  resources:
-    limits:
-      memory: 8G
-```
-
-### モデル読み込みエラー
-
-1. ディスク容量の確認
-2. Hugging Face Hubへのネットワーク接続確認
-3. モデル名のスペル確認
-4. 詳細なエラーメッセージのログ確認
-
-## モデル管理
-
-### モデルキャッシュ
-
-モデルは最初の読み込み後に自動的にキャッシュされます。キャッシュディレクトリ構造：
-
-```
-/app/models/
-├── maidalun1020_bce-reranker-base_v1/
-├── BAAI_bge-reranker-base/
-└── BAAI_bge-reranker-large/
-```
-
-### カスタムモデル
-
-カスタムモデルを追加するには、`model_loader.py`の`supported_models`辞書を更新してください：
-
-```python
-self.supported_models = {
-    "your-custom/model-name": {
-        "name": "custom-model",
-        "description": "Your Custom Model",
-        "max_length": 512
-    }
-}
+export HTTP_PROXY=http://proxy.company.com:8080
+export HTTPS_PROXY=http://proxy.company.com:8080
+export NO_PROXY=localhost,127.0.0.1
+docker-compose up -d
 ```
 
 ## API使用例
 
-### Pythonクライアント例
+### Pythonクライアント
 
 ```python
 import requests
 
-def rerank_documents(query, documents, model="bce-reranker-base_v1"):
+def rerank_documents(query, documents, model="japanese-reranker-large"):
     response = requests.post("http://localhost:7987/v1/rerank", json={
         "model": model,
         "query": query,
         "documents": documents,
         "top_n": 5,
         "return_documents": True
+    })
+    return response.json()
+
+def get_embeddings(texts, model="ruri-large"):
+    response = requests.post("http://localhost:7987/v1/embeddings", json={
+        "model": model,
+        "input": texts
     })
     return response.json()
 
@@ -336,70 +413,43 @@ docs = [
     "料理には新鮮な食材が必要です"
 ]
 
+# Reranking
 results = rerank_documents(query, docs)
 for result in results["results"]:
     print(f"スコア: {result['relevance_score']:.3f} - {result['document']}")
+
+# Embeddings
+embeddings = get_embeddings(["自然言語処理", "機械学習"])
+print(f"埋め込み次元: {len(embeddings['data'][0]['embedding'])}")
 ```
 
-### JavaScript/Node.js例
+## カスタムモデル
 
-```javascript
-const axios = require('axios');
+カスタムモデルを追加するには、`model_loader.py`と`embedding_loader.py`の`supported_models`辞書を更新してください：
 
-async function rerankDocuments(query, documents, model = 'bce-reranker-base_v1') {
-  try {
-    const response = await axios.post('http://localhost:7987/v1/rerank', {
-      model,
-      query,
-      documents,
-      top_n: 5,
-      return_documents: true
-    });
-    return response.data;
-  } catch (error) {
-    console.error('エラー:', error.response?.data || error.message);
-    throw error;
-  }
+```python
+# Rerankerモデル追加例
+self.supported_models = {
+    "your-custom/reranker-model": {
+        "name": "custom-reranker",
+        "description": "カスタムリランカーモデル",
+        "max_length": 512,
+        "language": "japanese",
+        "trust_remote_code": False
+    }
 }
 
-// 使用例
-const query = "機械学習アルゴリズム";
-const docs = [
-  "機械学習は人工知能の一分野です",
-  "今日の天気は晴れで暖かいです", 
-  "ニューラルネットワークは強力なMLアルゴリズムです",
-  "料理には新鮮な食材が必要です"
-];
-
-rerankDocuments(query, docs).then(results => {
-  results.results.forEach(result => {
-    console.log(`スコア: ${result.relevance_score.toFixed(3)} - ${result.document}`);
-  });
-});
+# Embeddingモデル追加例
+self.supported_models = {
+    "your-custom/embedding-model": {
+        "name": "custom-embedding",
+        "description": "カスタム埋め込みモデル",
+        "max_length": 512,
+        "dimensions": 768,
+        "language": "japanese"
+    }
+}
 ```
-
-### APIテストスクリプト
-
-付属のテストスクリプトを使用：
-
-```bash
-python test_api_example.py
-```
-
-## パフォーマンス最適化
-
-### GPU設定
-
-- NVIDIAドライバー（最新版推奨）
-- CUDA 11.8以上対応
-- GPU memory 4GB以上推奨
-
-### メモリ管理
-
-- 効率的なモデルキャッシュ
-- バッチ処理によるスループット向上
-- 設定可能なワーカー数
-- 自動メモリクリーンアップ
 
 ## ライセンス
 
@@ -415,4 +465,4 @@ python test_api_example.py
 
 ---
 
-**注意**: このサービスは文書再ランキング機能を提供し、適切な監視とスケーリングを考慮した本番環境での使用を想定して設計されています。
+**注意**: このサービスは日本語を含む多言語での文書再ランキングと埋め込み生成機能を提供し、適切な監視とスケーリングを考慮した本番環境での使用を想定して設計されています。

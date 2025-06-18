@@ -114,6 +114,9 @@ docker build -t rerank-api \
 # Build for AMD GPU  
 docker build -f docker/Dockerfile.amd -t rerank-api:amd .
 
+# Build with flexible configuration
+docker build -f docker/Dockerfile.flexible --build-arg COMPUTE_MODE=cpu -t rerank-api:cpu .
+
 # Run with NVIDIA GPU support
 docker run -d --name rerank-api \
   -p 7987:7987 \
@@ -483,6 +486,20 @@ python tests/test_api_example.py
 bash tests/test_detection.sh
 ```
 
+### Docker Testing
+
+```bash
+# Test different Docker configurations
+docker-compose up -d                                      # NVIDIA GPU (root)
+docker-compose -f docker/docker-compose.yml up -d         # NVIDIA GPU (docker/)
+docker-compose -f docker/docker-compose.amd.yml up -d     # AMD GPU
+docker-compose -f docker/docker-compose.cpu.yml up -d     # CPU only
+
+# Test with specific Docker files
+docker build -f docker/Dockerfile.amd -t test:amd .
+docker build -f docker/Dockerfile.flexible --build-arg COMPUTE_MODE=cpu -t test:cpu .
+```
+
 ### Code Quality
 
 ```bash
@@ -509,11 +526,20 @@ python tests/test_api_example.py
 ### Build Arguments
 
 ```bash
-# Build with specific Python version
-docker build --build-arg PYTHON_VERSION=3.10 -t rerank-api .
+# Build with proxy support
+docker build \
+  --build-arg HTTP_PROXY=http://proxy.company.com:8080 \
+  --build-arg HTTPS_PROXY=http://proxy.company.com:8080 \
+  --build-arg NO_PROXY=localhost,127.0.0.1 \
+  -t rerank-api .
 
-# Build for production
-docker build --target production -t rerank-api:prod .
+# Build AMD GPU version
+docker build -f docker/Dockerfile.amd -t rerank-api:amd .
+
+# Build CPU-only version
+docker build -f docker/Dockerfile.flexible \
+  --build-arg COMPUTE_MODE=cpu \
+  -t rerank-api:cpu .
 ```
 
 ### GPU Support
@@ -541,6 +567,25 @@ Models are automatically cached after first load. The cache directory structure:
 ├── BAAI_bge-reranker-base/
 └── BAAI_bge-reranker-large/
 ```
+
+### Docker File Structure
+
+The project includes multiple Docker configurations:
+
+```
+docker/
+├── Dockerfile                  # Standard NVIDIA GPU build
+├── Dockerfile.amd             # AMD ROCm GPU support
+├── Dockerfile.flexible        # CPU/GPU flexible build
+├── docker-compose.yml         # Standard compose file
+├── docker-compose.amd.yml     # AMD GPU compose
+├── docker-compose.cpu.yml     # CPU-only compose
+├── requirements.txt           # Standard requirements
+├── requirements.amd.txt       # AMD-specific requirements
+└── requirements-cpu.txt       # CPU-only requirements
+```
+
+**Note**: For convenience, the main `docker-compose.yml` is also available in the root directory.
 
 ### Custom Models
 
@@ -594,7 +639,7 @@ If you encounter the error: `could not select device driver "nvidia" with capabi
 1. Use CPU-only mode:
 ```bash
 # Using docker-compose
-docker-compose -f docker-compose.cpu.yml up -d
+docker-compose -f docker/docker-compose.cpu.yml up -d
 
 # Using docker run
 docker run -d --name rerank-api \
