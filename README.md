@@ -20,11 +20,14 @@ OpenAI-compatible Rerank and Embedding API service using BGE Reranker models for
 
 ### Reranking Models
 
-| Model Name | Short Name | Description |
-|-----------|------------|-------------|
-| maidalun1020/bce-reranker-base_v1 | bce-reranker-base_v1 | BGE Reranker Base Model v1 (Default) |
-| BAAI/bge-reranker-base | bge-reranker-base | BGE Reranker Base Model |
-| BAAI/bge-reranker-large | bge-reranker-large | BGE Reranker Large Model |
+| Model Name | Short Name | Max Length | Description |
+|-----------|------------|------------|-------------|
+| jinaai/jina-reranker-v2-base-multilingual | jina-reranker-v2-multilingual | 1024 | Jina Reranker v2 Multilingual (278M, 100+ languages) **Default** |
+| mixedbread-ai/mxbai-rerank-large-v1 | mxbai-rerank-large | 8192 | MixedBread AI Rerank Large v1 (1.5B params, high performance) |
+| jinaai/jina-reranker-v1-turbo-en | jina-reranker-turbo | 8192 | Jina Reranker v1 Turbo (37.8M params, fast inference) |
+| BAAI/bge-reranker-v2-m3 | bge-reranker-v2-m3 | 32000 | BGE Reranker v2 M3 (Multilingual, up to 32k tokens) |
+| Cohere/rerank-multilingual-v3.0 | cohere-rerank-multilingual | 4096 | Cohere Rerank Multilingual v3.0 (4k context) |
+| maidalun1020/bce-reranker-base_v1 | bce-reranker-base_v1 | 512 | BGE Reranker Base Model v1 (Legacy) |
 
 ### Embedding Models
 
@@ -148,7 +151,7 @@ Rerank documents with dynamic model selection:
 curl -X POST "http://localhost:7987/v1/rerank" \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "bce-reranker-base_v1",
+    "model": "jina-reranker-v2-multilingual",
     "query": "What is machine learning?",
     "documents": [
       "Machine learning is a branch of artificial intelligence.",
@@ -163,11 +166,11 @@ curl -X POST "http://localhost:7987/v1/rerank" \
 #### Using Different Models
 
 ```bash
-# Using large model
+# Using high-performance large model (8k context)
 curl -X POST "http://localhost:7987/v1/rerank" \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "bge-reranker-large",
+    "model": "mxbai-rerank-large",
     "query": "What is artificial intelligence?",
     "documents": [
       "AI simulates human intelligence in machines.",
@@ -178,16 +181,29 @@ curl -X POST "http://localhost:7987/v1/rerank" \
     "return_documents": true
   }'
 
-# Using full model name
+# Using ultra-long context model (32k tokens)
 curl -X POST "http://localhost:7987/v1/rerank" \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "BAAI/bge-reranker-base",
+    "model": "bge-reranker-v2-m3",
     "query": "Natural language processing",
     "documents": [
       "NLP helps computers understand human language.",
       "Cooking pasta requires boiling water first.",
       "Text analysis is a core component of NLP."
+    ]
+  }'
+
+# Using fast turbo model for quick inference
+curl -X POST "http://localhost:7987/v1/rerank" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "jina-reranker-turbo",
+    "query": "Machine learning algorithms",
+    "documents": [
+      "Deep learning uses neural networks with multiple layers.",
+      "Today's lunch menu includes sandwiches and salads.",
+      "Support vector machines are powerful ML algorithms."
     ]
   }'
 ```
@@ -196,7 +212,7 @@ curl -X POST "http://localhost:7987/v1/rerank" \
 
 ```json
 {
-  "model": "bce-reranker-base_v1",
+  "model": "jina-reranker-v2-multilingual",
   "results": [
     {
       "index": 0,
@@ -286,7 +302,7 @@ curl http://localhost:7987/models
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| model | string | No | Model to use (short name or full name, default: "bce-reranker-base_v1") |
+| model | string | No | Model to use (short name or full name, default: "jina-reranker-v2-multilingual") |
 | query | string | Yes | Query string for ranking documents |
 | documents | array[string] | Yes | List of documents to rerank (max 1000) |
 | top_n | integer | No | Number of top results to return |
@@ -334,7 +350,7 @@ curl http://localhost:7987/models
 | HOST | 0.0.0.0 | Service host |
 | PORT | 7987 | Service port |
 | WORKERS | 1 | Number of workers |
-| RERANKER_MODEL_NAME | maidalun1020/bce-reranker-base_v1 | Default reranker model name |
+| RERANKER_MODEL_NAME | jinaai/jina-reranker-v2-base-multilingual | Default reranker model name |
 | RERANKER_MODELS_DIR | /app/models | Base directory for model storage |
 | EMBEDDING_MODEL_NAME | intfloat/multilingual-e5-base | Default embedding model name |
 | HTTP_PROXY | - | HTTP proxy server URL |

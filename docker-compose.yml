@@ -14,7 +14,7 @@ services:
       - HOST=0.0.0.0
       - PORT=7987
       - WORKERS=1
-      - RERANKER_MODEL_NAME=maidalun1020/bce-reranker-base_v1
+      - RERANKER_MODEL_NAME=jinaai/jina-reranker-v2-base-multilingual
       - RERANKER_MODELS_DIR=/app/models
       - EMBEDDING_MODEL_NAME=intfloat/multilingual-e5-base
       - TRANSFORMERS_CACHE=/root/.cache/huggingface

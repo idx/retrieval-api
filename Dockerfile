@@ -44,7 +44,7 @@ EXPOSE 7987
 ENV HOST=0.0.0.0
 ENV PORT=7987
 ENV WORKERS=1
-ENV RERANKER_MODEL_NAME=maidalun1020/bce-reranker-base_v1
+ENV RERANKER_MODEL_NAME=jinaai/jina-reranker-v2-base-multilingual
 ENV RERANKER_MODELS_DIR=/app/models
 ENV EMBEDDING_MODEL_NAME=intfloat/multilingual-e5-base
 ENV HF_HOME=/home/appuser/.cache/huggingface

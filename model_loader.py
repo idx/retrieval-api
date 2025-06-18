@@ -13,11 +13,11 @@ logger = logging.getLogger(__name__)
 class RerankerModel:
     """Single reranker model loader and scorer"""
     
-    def __init__(self, model_name: str = "maidalun1020/bce-reranker-base_v1", 
+    def __init__(self, model_name: str = "jinaai/jina-reranker-v2-base-multilingual", 
                  model_dir: Optional[str] = None, 
-                 max_length: int = 512):
+                 max_length: int = 1024):
         """
-        Initialize BGE Reranker model
+        Initialize Reranker model
         
         Args:
             model_name: Hugging Face model name
@@ -58,7 +58,7 @@ class RerankerModel:
 
     def _load_model(self):
         """Load the model"""
-        logger.info(f"Initializing BGE Reranker on device: {self.device}")
+        logger.info(f"Initializing Reranker model on device: {self.device}")
         
         # Try to load from local directory first if specified
         if self.model_dir and os.path.exists(self.model_dir):
@@ -77,7 +77,8 @@ class RerankerModel:
             self.model = CrossEncoder(
                 model_path,
                 max_length=self.max_length,
-                device=self.device.type
+                device=self.device.type,
+                trust_remote_code=True
             )
             
             # Save model locally if directory specified and not already saved
@@ -90,8 +91,8 @@ class RerankerModel:
             
             # Fallback to direct transformers loading
             try:
-                self.tokenizer = AutoTokenizer.from_pretrained(model_path)
-                self.model = AutoModelForSequenceClassification.from_pretrained(model_path)
+                self.tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
+                self.model = AutoModelForSequenceClassification.from_pretrained(model_path, trust_remote_code=True)
                 self.model = self.model.to(self.device)
                 self.model.eval()
                 
@@ -191,7 +192,7 @@ class RerankerModel:
 class ModelManager:
     """Manages multiple reranker models"""
     
-    def __init__(self, default_model: str = "maidalun1020/bce-reranker-base_v1", 
+    def __init__(self, default_model: str = "jinaai/jina-reranker-v2-base-multilingual", 
                  models_base_dir: str = "/app/models"):
         """
         Initialize model manager
@@ -204,20 +205,37 @@ class ModelManager:
         self.models_base_dir = models_base_dir
         self.loaded_models: Dict[str, RerankerModel] = {}
         self.supported_models = {
+            # Legacy BGE models (512 tokens)
             "maidalun1020/bce-reranker-base_v1": {
                 "name": "bce-reranker-base_v1",
                 "description": "BGE Reranker Base Model v1",
                 "max_length": 512
             },
-            "BAAI/bge-reranker-base": {
-                "name": "bge-reranker-base",
-                "description": "BGE Reranker Base Model",
-                "max_length": 512
+            # Modern high-performance models with various context lengths
+            "jinaai/jina-reranker-v2-base-multilingual": {
+                "name": "jina-reranker-v2-multilingual",
+                "description": "Jina Reranker v2 Multilingual (278M params, 100+ languages)",
+                "max_length": 1024
             },
-            "BAAI/bge-reranker-large": {
-                "name": "bge-reranker-large", 
-                "description": "BGE Reranker Large Model",
-                "max_length": 512
+            "mixedbread-ai/mxbai-rerank-large-v1": {
+                "name": "mxbai-rerank-large",
+                "description": "MixedBread AI Rerank Large v1 (1.5B params, high performance)",
+                "max_length": 8192
+            },
+            "jinaai/jina-reranker-v1-turbo-en": {
+                "name": "jina-reranker-turbo",
+                "description": "Jina Reranker v1 Turbo (37.8M params, fast inference)",
+                "max_length": 8192
+            },
+            "BAAI/bge-reranker-v2-m3": {
+                "name": "bge-reranker-v2-m3",
+                "description": "BGE Reranker v2 M3 (Multilingual, up to 32k tokens)",
+                "max_length": 32000
+            },
+            "Cohere/rerank-multilingual-v3.0": {
+                "name": "cohere-rerank-multilingual",
+                "description": "Cohere Rerank Multilingual v3.0 (4k context)",
+                "max_length": 4096
             }
         }
         
