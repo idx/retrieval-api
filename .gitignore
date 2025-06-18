@@ -81,6 +81,8 @@ CLAUDE.md
 *.tmp
 temp/
 tmp/
+test_env/
+test_models/
 
 # Docker volumes
 data/

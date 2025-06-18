@@ -20,23 +20,68 @@ OpenAI-compatible Rerank and Embedding API service using BGE Reranker models for
 
 ### Reranking Models
 
-| Model Name | Short Name | Max Length | Description |
-|-----------|------------|------------|-------------|
-| jinaai/jina-reranker-v2-base-multilingual | jina-reranker-v2-multilingual | 1024 | Jina Reranker v2 Multilingual (278M, 100+ languages) **Default** |
-| mixedbread-ai/mxbai-rerank-large-v1 | mxbai-rerank-large | 8192 | MixedBread AI Rerank Large v1 (1.5B params, high performance) |
-| jinaai/jina-reranker-v1-turbo-en | jina-reranker-turbo | 8192 | Jina Reranker v1 Turbo (37.8M params, fast inference) |
-| BAAI/bge-reranker-v2-m3 | bge-reranker-v2-m3 | 32000 | BGE Reranker v2 M3 (Multilingual, up to 32k tokens) |
-| Cohere/rerank-multilingual-v3.0 | cohere-rerank-multilingual | 4096 | Cohere Rerank Multilingual v3.0 (4k context) |
-| maidalun1020/bce-reranker-base_v1 | bce-reranker-base_v1 | 512 | BGE Reranker Base Model v1 (Legacy) |
+#### Japanese Language Models
+
+| Model Name | Short Name | Max Length | Size | Description |
+|-----------|------------|------------|------|-------------|
+| hotchpotch/japanese-reranker-cross-encoder-large-v1 | japanese-reranker-large | 512 | 334MB | Japanese Reranker Large v1 (日本語最高性能) |
+| hotchpotch/japanese-reranker-cross-encoder-base-v1 | japanese-reranker-base | 512 | 111MB | Japanese Reranker Base v1 (日本語バランス型) |
+| hotchpotch/japanese-reranker-cross-encoder-small-v1 | japanese-reranker-small | 512 | 67MB | Japanese Reranker Small v1 (高速推論) |
+| hotchpotch/japanese-bge-reranker-v2-m3-v1 | japanese-bge-v2-m3 | 8192 | ~500MB | Japanese BGE Reranker v2-M3 v1 (日本語特化版) |
+
+#### Multilingual Models
+
+| Model Name | Short Name | Max Length | Size | Description |
+|-----------|------------|------------|------|-------------|
+| jinaai/jina-reranker-v2-base-multilingual | jina-reranker-v2-multilingual | 1024 | 278MB | Jina Reranker v2 Multilingual (100+ languages) **Default** |
+| BAAI/bge-reranker-v2-m3 | bge-reranker-v2-m3 | 32000 | ~600MB | BGE Reranker v2 M3 (Multilingual, up to 32k tokens) |
+| Alibaba-NLP/gte-multilingual-reranker-base | gte-multilingual-reranker | 8192 | 560MB | GTE Multilingual Reranker (70+ languages) |
+| mixedbread-ai/mxbai-rerank-large-v1 | mxbai-rerank-large | 8192 | 1.5GB | MixedBread AI Rerank Large v1 (high performance) |
+| Cohere/rerank-multilingual-v3.0 | cohere-rerank-multilingual | 4096 | ~400MB | Cohere Rerank Multilingual v3.0 |
+
+#### English Language Models
+
+| Model Name | Short Name | Max Length | Size | Description |
+|-----------|------------|------------|------|-------------|
+| jinaai/jina-reranker-v1-turbo-en | jina-reranker-turbo | 8192 | 37.8MB | Jina Reranker v1 Turbo (fast inference) |
+
+#### Legacy Models
+
+| Model Name | Short Name | Max Length | Size | Description |
+|-----------|------------|------------|------|-------------|
+| maidalun1020/bce-reranker-base_v1 | bce-reranker-base_v1 | 512 | ~400MB | BGE Reranker Base Model v1 (Legacy) |
 
 ### Embedding Models
 
-| Model Name | Short Name | Description |
-|-----------|------------|-------------|
-| intfloat/multilingual-e5-base | multilingual-e5-base | Multilingual E5 Base Model (Default) |
-| intfloat/e5-base | e5-base | E5 Base Model |
-| intfloat/e5-large | e5-large | E5 Large Model |
-| intfloat/multilingual-e5-large | multilingual-e5-large | Multilingual E5 Large Model |
+#### Japanese Language Models
+
+| Model Name | Short Name | Max Length | Dimensions | Description |
+|-----------|------------|------------|------------|-------------|
+| cl-nagoya/ruri-large | ruri-large | 512 | 1024 | Ruri Large Japanese Embedding (JMTEB最高性能) |
+| cl-nagoya/ruri-base | ruri-base | 512 | 768 | Ruri Base Japanese Embedding (日本語バランス型) |
+| MU-Kindai/Japanese-SimCSE-BERT-large-unsup | japanese-simcse-large | 512 | 1024 | Japanese SimCSE BERT Large (教師なし学習) |
+| sonoisa/sentence-luke-japanese-base-lite | luke-japanese-base | 512 | 768 | LUKE Japanese Base Lite (知識強化型) |
+| pkshatech/GLuCoSE-base-ja-v2 | glucose-ja-v2 | 512 | 768 | GLuCoSE Japanese v2 (企業開発) |
+
+#### Multilingual Models
+
+| Model Name | Short Name | Max Length | Dimensions | Description |
+|-----------|------------|------------|------------|-------------|
+| BAAI/bge-m3 | bge-m3 | 8192 | 1024 | BGE M3 Multilingual Embedding **Default** |
+| nvidia/NV-Embed-v2 | nv-embed-v2 | 32768 | 4096 | NVIDIA NV-Embed v2 (SOTA performance) |
+| intfloat/e5-mistral-7b-instruct | e5-mistral-7b | 32768 | 4096 | E5 Mistral 7B Instruct (high quality) |
+| mixedbread-ai/mxbai-embed-large-v1 | mxbai-embed-large | 512 | 1024 | MixedBread AI Large v1 (production ready) |
+| intfloat/multilingual-e5-large | multilingual-e5-large | 512 | 1024 | Multilingual E5 Large (100+ languages) |
+| intfloat/multilingual-e5-base | multilingual-e5-base | 512 | 768 | Multilingual E5 Base (Legacy) |
+
+#### English Language Models
+
+| Model Name | Short Name | Max Length | Dimensions | Description |
+|-----------|------------|------------|------------|-------------|
+| sentence-transformers/all-mpnet-base-v2 | all-mpnet-base-v2 | 514 | 768 | All MPNet Base v2 (balanced performance) |
+| sentence-transformers/all-MiniLM-L6-v2 | all-minilm-l6-v2 | 256 | 384 | All MiniLM L6 v2 (fast and efficient) |
+| intfloat/e5-base | e5-base | 512 | 768 | E5 Base Model (English optimized) |
+| intfloat/e5-large | e5-large | 512 | 1024 | E5 Large Model (English optimized) |
 
 ## Quick Start
 
@@ -67,7 +112,7 @@ docker build -t rerank-api \
   --build-arg NO_PROXY=localhost,127.0.0.1 .
 
 # Build for AMD GPU  
-docker build -f Dockerfile.amd -t rerank-api:amd .
+docker build -f docker/Dockerfile.amd -t rerank-api:amd .
 
 # Run with NVIDIA GPU support
 docker run -d --name rerank-api \
@@ -111,10 +156,10 @@ export NO_PROXY=localhost,127.0.0.1
 docker-compose up -d
 
 # AMD GPU support
-docker-compose -f docker-compose.amd.yml up -d
+docker-compose -f docker/docker-compose.amd.yml up -d
 
 # CPU only mode
-docker-compose -f docker-compose.cpu.yml up -d
+docker-compose -f docker/docker-compose.cpu.yml up -d
 ```
 
 ### Local Development
@@ -166,6 +211,34 @@ curl -X POST "http://localhost:7987/v1/rerank" \
 #### Using Different Models
 
 ```bash
+# Using Japanese high-performance model
+curl -X POST "http://localhost:7987/v1/rerank" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "japanese-reranker-large",
+    "query": "人工知能とは何ですか？",
+    "documents": [
+      "AIは機械で人間の知能を模倣します。",
+      "明日の天気予報は雨です。",
+      "機械学習はAI技術の一部です。"
+    ],
+    "top_n": 2,
+    "return_documents": true
+  }'
+
+# Using Japanese balanced model
+curl -X POST "http://localhost:7987/v1/rerank" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "japanese-reranker-base",
+    "query": "自然言語処理",
+    "documents": [
+      "NLPはコンピュータが人間の言語を理解するのを助けます。",
+      "パスタを茹でるにはまずお湯を沸かします。",
+      "テキスト解析はNLPの中核的な要素です。"
+    ]
+  }'
+
 # Using high-performance large model (8k context)
 curl -X POST "http://localhost:7987/v1/rerank" \
   -H "Content-Type: application/json" \
@@ -242,7 +315,7 @@ curl -X POST "http://localhost:7987/v1/rerank" \
 curl -X POST "http://localhost:7987/v1/embeddings" \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "multilingual-e5-base",
+    "model": "bge-m3",
     "input": "Natural language processing is fascinating."
   }'
 ```
@@ -253,12 +326,44 @@ curl -X POST "http://localhost:7987/v1/embeddings" \
 curl -X POST "http://localhost:7987/v1/embeddings" \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "e5-base",
+    "model": "bge-m3",
     "input": [
       "First text to embed",
       "Second text to embed",
       "Third text to embed"
     ]
+  }'
+
+# Using Japanese high-performance model
+curl -X POST "http://localhost:7987/v1/embeddings" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "ruri-large",
+    "input": "自然言語処理は人工知能の重要な分野です。"
+  }'
+
+# Using Japanese balanced model
+curl -X POST "http://localhost:7987/v1/embeddings" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "ruri-base",
+    "input": "日本語のテキスト埋め込みを生成します。"
+  }'
+
+# Using high-performance SOTA model (32k context)
+curl -X POST "http://localhost:7987/v1/embeddings" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "nv-embed-v2",
+    "input": "This is a very long document that requires high-quality embeddings with support for extended context lengths up to 32,768 tokens."
+  }'
+
+# Using efficient lightweight model
+curl -X POST "http://localhost:7987/v1/embeddings" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "all-minilm-l6-v2",
+    "input": "Quick embedding for fast inference."
   }'
 ```
 
@@ -267,7 +372,7 @@ curl -X POST "http://localhost:7987/v1/embeddings" \
 ```json
 {
   "object": "list",
-  "model": "multilingual-e5-base",
+  "model": "bge-m3",
   "data": [
     {
       "object": "embedding",
@@ -325,7 +430,7 @@ curl http://localhost:7987/models
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| model | string | No | Model to use (short name or full name, default: "multilingual-e5-base") |
+| model | string | No | Model to use (short name or full name, default: "bge-m3") |
 | input | string or array[string] | Yes | Text(s) to embed (max 2048 texts) |
 | encoding_format | string | No | Format for embeddings ("float" or "base64", default: "float") |
 | dimensions | integer | No | Number of dimensions to reduce embeddings to |
@@ -352,7 +457,7 @@ curl http://localhost:7987/models
 | WORKERS | 1 | Number of workers |
 | RERANKER_MODEL_NAME | jinaai/jina-reranker-v2-base-multilingual | Default reranker model name |
 | RERANKER_MODELS_DIR | /app/models | Base directory for model storage |
-| EMBEDDING_MODEL_NAME | intfloat/multilingual-e5-base | Default embedding model name |
+| EMBEDDING_MODEL_NAME | BAAI/bge-m3 | Default embedding model name |
 | HTTP_PROXY | - | HTTP proxy server URL |
 | HTTPS_PROXY | - | HTTPS proxy server URL |
 | NO_PROXY | - | Comma-separated list of hosts to bypass proxy |
@@ -370,6 +475,12 @@ pytest tests/ --cov=.
 
 # Run specific test
 python -m pytest tests/test_api.py -v
+
+# Run API example test
+python tests/test_api_example.py
+
+# Run hardware detection test
+bash tests/test_detection.sh
 ```
 
 ### Code Quality
@@ -390,7 +501,7 @@ mypy app.py
 Use the included test script:
 
 ```bash
-python test_api_example.py
+python tests/test_api_example.py
 ```
 
 ## Docker Configuration

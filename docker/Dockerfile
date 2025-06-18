@@ -46,7 +46,7 @@ ENV PORT=7987
 ENV WORKERS=1
 ENV RERANKER_MODEL_NAME=jinaai/jina-reranker-v2-base-multilingual
 ENV RERANKER_MODELS_DIR=/app/models
-ENV EMBEDDING_MODEL_NAME=BAAI/bge-m3
+ENV EMBEDDING_MODEL_NAME=intfloat/multilingual-e5-base
 ENV HF_HOME=/home/appuser/.cache/huggingface
 
 # Run the application

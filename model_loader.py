@@ -74,11 +74,14 @@ class RerankerModel:
         
         try:
             # Load model using sentence-transformers CrossEncoder
+            # Check if trust_remote_code is needed for this model
+            trust_remote_code = self._requires_trust_remote_code()
+            
             self.model = CrossEncoder(
                 model_path,
                 max_length=self.max_length,
                 device=self.device.type,
-                trust_remote_code=True
+                trust_remote_code=trust_remote_code
             )
             
             # Save model locally if directory specified and not already saved
@@ -91,8 +94,9 @@ class RerankerModel:
             
             # Fallback to direct transformers loading
             try:
-                self.tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
-                self.model = AutoModelForSequenceClassification.from_pretrained(model_path, trust_remote_code=True)
+                trust_remote_code = self._requires_trust_remote_code()
+                self.tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=trust_remote_code)
+                self.model = AutoModelForSequenceClassification.from_pretrained(model_path, trust_remote_code=trust_remote_code)
                 self.model = self.model.to(self.device)
                 self.model.eval()
                 
@@ -111,6 +115,16 @@ class RerankerModel:
             self._use_direct_inference = False
             
         logger.info("Model loaded successfully")
+        
+    def _requires_trust_remote_code(self) -> bool:
+        """Check if the model requires trust_remote_code=True"""
+        # Models that require trust_remote_code
+        trust_required_models = [
+            "jinaai/jina-reranker-v2-base-multilingual",
+            "jinaai/jina-reranker-v1-turbo-en"
+        ]
+        
+        return self.model_name in trust_required_models
     
     def compute_scores(self, query: str, documents: List[str]) -> List[float]:
         """
@@ -205,37 +219,86 @@ class ModelManager:
         self.models_base_dir = models_base_dir
         self.loaded_models: Dict[str, RerankerModel] = {}
         self.supported_models = {
-            # Legacy BGE models (512 tokens)
-            "maidalun1020/bce-reranker-base_v1": {
-                "name": "bce-reranker-base_v1",
-                "description": "BGE Reranker Base Model v1",
-                "max_length": 512
+            # Japanese Language Models
+            "hotchpotch/japanese-reranker-cross-encoder-large-v1": {
+                "name": "japanese-reranker-large",
+                "description": "Japanese Reranker Large v1 (334MB, 日本語最高性能)",
+                "max_length": 512,
+                "language": "japanese",
+                "trust_remote_code": False
             },
-            # Modern high-performance models with various context lengths
+            "hotchpotch/japanese-reranker-cross-encoder-base-v1": {
+                "name": "japanese-reranker-base",
+                "description": "Japanese Reranker Base v1 (111MB, 日本語バランス型)",
+                "max_length": 512,
+                "language": "japanese",
+                "trust_remote_code": False
+            },
+            "hotchpotch/japanese-reranker-cross-encoder-small-v1": {
+                "name": "japanese-reranker-small",
+                "description": "Japanese Reranker Small v1 (67MB, 高速推論)",
+                "max_length": 512,
+                "language": "japanese",
+                "trust_remote_code": False
+            },
+            "hotchpotch/japanese-bge-reranker-v2-m3-v1": {
+                "name": "japanese-bge-v2-m3",
+                "description": "Japanese BGE Reranker v2-M3 v1 (日本語特化版)",
+                "max_length": 8192,
+                "language": "japanese",
+                "trust_remote_code": False
+            },
+            # Multilingual Models
             "jinaai/jina-reranker-v2-base-multilingual": {
                 "name": "jina-reranker-v2-multilingual",
                 "description": "Jina Reranker v2 Multilingual (278M params, 100+ languages)",
-                "max_length": 1024
-            },
-            "mixedbread-ai/mxbai-rerank-large-v1": {
-                "name": "mxbai-rerank-large",
-                "description": "MixedBread AI Rerank Large v1 (1.5B params, high performance)",
-                "max_length": 8192
-            },
-            "jinaai/jina-reranker-v1-turbo-en": {
-                "name": "jina-reranker-turbo",
-                "description": "Jina Reranker v1 Turbo (37.8M params, fast inference)",
-                "max_length": 8192
+                "max_length": 1024,
+                "language": "multilingual",
+                "trust_remote_code": True
             },
             "BAAI/bge-reranker-v2-m3": {
                 "name": "bge-reranker-v2-m3",
                 "description": "BGE Reranker v2 M3 (Multilingual, up to 32k tokens)",
-                "max_length": 32000
+                "max_length": 32000,
+                "language": "multilingual",
+                "trust_remote_code": False
+            },
+            "Alibaba-NLP/gte-multilingual-reranker-base": {
+                "name": "gte-multilingual-reranker",
+                "description": "GTE Multilingual Reranker (560MB, 70+ languages)",
+                "max_length": 8192,
+                "language": "multilingual",
+                "trust_remote_code": False
+            },
+            "mixedbread-ai/mxbai-rerank-large-v1": {
+                "name": "mxbai-rerank-large",
+                "description": "MixedBread AI Rerank Large v1 (1.5B params, high performance)",
+                "max_length": 8192,
+                "language": "multilingual",
+                "trust_remote_code": False
             },
             "Cohere/rerank-multilingual-v3.0": {
                 "name": "cohere-rerank-multilingual",
                 "description": "Cohere Rerank Multilingual v3.0 (4k context)",
-                "max_length": 4096
+                "max_length": 4096,
+                "language": "multilingual",
+                "trust_remote_code": False
+            },
+            # English Models
+            "jinaai/jina-reranker-v1-turbo-en": {
+                "name": "jina-reranker-turbo",
+                "description": "Jina Reranker v1 Turbo (37.8M params, fast inference)",
+                "max_length": 8192,
+                "language": "english",
+                "trust_remote_code": True
+            },
+            # Legacy Models
+            "maidalun1020/bce-reranker-base_v1": {
+                "name": "bce-reranker-base_v1",
+                "description": "BGE Reranker Base Model v1 (Legacy)",
+                "max_length": 512,
+                "language": "multilingual",
+                "trust_remote_code": False
             }
         }
         
@@ -250,7 +313,9 @@ class ModelManager:
             return {
                 "name": model_name.split("/")[-1] if "/" in model_name else model_name,
                 "description": f"Custom model: {model_name}",
-                "max_length": 512
+                "max_length": 512,
+                "language": "unknown",
+                "trust_remote_code": False
             }
     
     def is_model_supported(self, model_name: str) -> bool:
@@ -260,6 +325,18 @@ class ModelManager:
     def get_supported_models(self) -> List[str]:
         """Get list of supported model names"""
         return list(self.supported_models.keys())
+        
+    def get_models_by_language(self, language: str = None) -> Dict[str, Dict]:
+        """Get models filtered by language"""
+        if language is None:
+            return self.supported_models.copy()
+            
+        filtered_models = {}
+        for model_name, config in self.supported_models.items():
+            if config.get("language", "").lower() == language.lower():
+                filtered_models[model_name] = config
+                
+        return filtered_models
     
     def load_model(self, model_name: str) -> RerankerModel:
         """

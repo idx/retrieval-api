@@ -16,10 +16,10 @@ class EmbeddingModel:
     
     def __init__(
         self,
-        model_name: str = "intfloat/multilingual-e5-base",
+        model_name: str = "BAAI/bge-m3",
         model_dir: Optional[str] = None,
         device: Optional[str] = None,
-        max_length: int = 512,
+        max_length: int = 8192,
         normalize_embeddings: bool = True
     ):
         """
@@ -45,6 +45,120 @@ class EmbeddingModel:
             self.device = self._detect_device()
         else:
             self.device = torch.device(device)
+        
+        # Supported models configuration
+        self.supported_models = {
+            "BAAI/bge-m3": {
+                "name": "bge-m3",
+                "description": "BGE M3 Multilingual Embedding (8192 tokens, 1024 dim) - Default",
+                "max_length": 8192,
+                "dimensions": 1024,
+                "language": "multilingual"
+            },
+            "cl-nagoya/ruri-large": {
+                "name": "ruri-large",
+                "description": "Ruri Large Japanese Embedding (512 tokens, 1024 dim, JMTEB最高性能)",
+                "max_length": 512,
+                "dimensions": 1024,
+                "language": "japanese"
+            },
+            "cl-nagoya/ruri-base": {
+                "name": "ruri-base",
+                "description": "Ruri Base Japanese Embedding (512 tokens, 768 dim, 日本語バランス型)",
+                "max_length": 512,
+                "dimensions": 768,
+                "language": "japanese"
+            },
+            "MU-Kindai/Japanese-SimCSE-BERT-large-unsup": {
+                "name": "japanese-simcse-large",
+                "description": "Japanese SimCSE BERT Large (512 tokens, 1024 dim, 教師なし学習)",
+                "max_length": 512,
+                "dimensions": 1024,
+                "language": "japanese"
+            },
+            "sonoisa/sentence-luke-japanese-base-lite": {
+                "name": "luke-japanese-base",
+                "description": "LUKE Japanese Base Lite (512 tokens, 768 dim, 知識強化型)",
+                "max_length": 512,
+                "dimensions": 768,
+                "language": "japanese"
+            },
+            "pkshatech/GLuCoSE-base-ja-v2": {
+                "name": "glucose-ja-v2",
+                "description": "GLuCoSE Japanese v2 (512 tokens, 768 dim, 企業開発)",
+                "max_length": 512,
+                "dimensions": 768,
+                "language": "japanese"
+            },
+            "nvidia/NV-Embed-v2": {
+                "name": "nv-embed-v2",
+                "description": "NVIDIA NV-Embed v2 (32768 tokens, 4096 dim, SOTA performance)",
+                "max_length": 32768,
+                "dimensions": 4096,
+                "language": "multilingual"
+            },
+            "intfloat/e5-mistral-7b-instruct": {
+                "name": "e5-mistral-7b",
+                "description": "E5 Mistral 7B Instruct (32768 tokens, 4096 dim, high quality)",
+                "max_length": 32768,
+                "dimensions": 4096,
+                "language": "multilingual"
+            },
+            "mixedbread-ai/mxbai-embed-large-v1": {
+                "name": "mxbai-embed-large",
+                "description": "MixedBread AI Large v1 (512 tokens, 1024 dim, production ready)",
+                "max_length": 512,
+                "dimensions": 1024,
+                "language": "multilingual"
+            },
+            "sentence-transformers/all-mpnet-base-v2": {
+                "name": "all-mpnet-base-v2",
+                "description": "All MPNet Base v2 (514 tokens, 768 dim, balanced performance)",
+                "max_length": 514,
+                "dimensions": 768,
+                "language": "english"
+            },
+            "sentence-transformers/all-MiniLM-L6-v2": {
+                "name": "all-minilm-l6-v2",
+                "description": "All MiniLM L6 v2 (256 tokens, 384 dim, fast and efficient)",
+                "max_length": 256,
+                "dimensions": 384,
+                "language": "english"
+            },
+            "intfloat/multilingual-e5-large": {
+                "name": "multilingual-e5-large", 
+                "description": "Multilingual E5 Large (512 tokens, 1024 dim, 100+ languages)",
+                "max_length": 512,
+                "dimensions": 1024,
+                "language": "multilingual"
+            },
+            "intfloat/multilingual-e5-base": {
+                "name": "multilingual-e5-base",
+                "description": "Multilingual E5 Base (512 tokens, 768 dim, legacy default)",
+                "max_length": 512,
+                "dimensions": 768,
+                "language": "multilingual"
+            },
+            "intfloat/e5-base": {
+                "name": "e5-base",
+                "description": "E5 Base Model (512 tokens, 768 dim, English optimized)",
+                "max_length": 512,
+                "dimensions": 768,
+                "language": "english"
+            },
+            "intfloat/e5-large": {
+                "name": "e5-large",
+                "description": "E5 Large Model (512 tokens, 1024 dim, English optimized)",
+                "max_length": 512,
+                "dimensions": 1024,
+                "language": "english"
+            }
+        }
+        
+        # Update max_length based on model if not explicitly set
+        if model_name in self.supported_models:
+            if max_length == 8192:  # Default value, update based on model
+                self.max_length = self.supported_models[model_name]["max_length"]
         
         # Load the model
         self._load_model()
@@ -93,7 +207,8 @@ class EmbeddingModel:
             # Try loading with sentence-transformers first
             self.model = SentenceTransformer(
                 model_path,
-                device=self.device.type
+                device=self.device.type,
+                trust_remote_code=True
             )
             self.model.max_seq_length = self.max_length
             
@@ -107,8 +222,8 @@ class EmbeddingModel:
             
             # Fallback to direct transformers loading
             try:
-                self.tokenizer = AutoTokenizer.from_pretrained(model_path)
-                self.model = AutoModel.from_pretrained(model_path)
+                self.tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
+                self.model = AutoModel.from_pretrained(model_path, trust_remote_code=True)
                 self.model = self.model.to(self.device)
                 self.model.eval()
                 
@@ -232,6 +347,44 @@ class EmbeddingModel:
             sample = self.encode("sample", convert_to_numpy=False)
             return sample.shape[-1]
             
+    def get_model_info(self) -> Dict[str, Any]:
+        """Get information about the current model"""
+        model_info = {
+            "model_name": self.model_name,
+            "max_length": self.max_length,
+            "normalize_embeddings": self.normalize_embeddings,
+            "device": str(self.device),
+            "use_sentence_transformers": self._use_sentence_transformers
+        }
+        
+        # Add model-specific info if available
+        if self.model_name in self.supported_models:
+            model_config = self.supported_models[self.model_name]
+            model_info.update({
+                "short_name": model_config["name"],
+                "description": model_config["description"],
+                "dimensions": model_config["dimensions"],
+                "language": model_config.get("language", "unknown")
+            })
+            
+        return model_info
+        
+    def get_supported_models(self) -> Dict[str, Dict[str, Any]]:
+        """Get list of supported models"""
+        return self.supported_models.copy()
+        
+    def get_models_by_language(self, language: str = None) -> Dict[str, Dict[str, Any]]:
+        """Get models filtered by language"""
+        if language is None:
+            return self.get_supported_models()
+            
+        filtered_models = {}
+        for model_name, config in self.supported_models.items():
+            if config.get("language", "").lower() == language.lower():
+                filtered_models[model_name] = config
+                
+        return filtered_models
+    
     def to(self, device: Union[str, torch.device]):
         """Move model to specified device"""
         self.device = torch.device(device) if isinstance(device, str) else device

@@ -6,8 +6,6 @@ transformers>=4.40.0
 sentence-transformers>=2.7.0
 numpy>=1.26.2
 einops>=0.8.0
-protobuf>=3.20.0
-sentencepiece>=0.1.95
 python-multipart>=0.0.6
 httpx>=0.25.2
 
