@@ -1,6 +1,6 @@
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
-pydantic==2.5.0
+pydantic==2.11.7
 # PyTorch with ROCm support - will be pre-installed in base image
 transformers==4.40.0
 sentence-transformers==2.7.0
