@@ -11,6 +11,7 @@ services:
       - WORKERS=1
       - RERANKER_MODEL_NAME=maidalun1020/bce-reranker-base_v1
       - RERANKER_MODELS_DIR=/app/models
+      - EMBEDDING_MODEL_NAME=intfloat/multilingual-e5-base
       - TRANSFORMERS_CACHE=/root/.cache/huggingface
     volumes:
       - ./models:/app/models

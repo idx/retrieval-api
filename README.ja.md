@@ -1,14 +1,15 @@
-# Rerank API Service
+# Rerank & Embedding API Service
 
 🇯🇵 日本語 | [🇺🇸 English](README.md)
 
-OpenAI互換のRerank APIサービス。BGE Rerankerモデルを使用して高精度な文書の再ランキング機能を提供します。
+OpenAI互換のRerank/Embedding APIサービス。BGE Rerankerモデルを使用した文書の再ランキングとsentence-transformersを使用したテキスト埋め込み生成機能を提供します。
 
 ## 機能
 
-- OpenAI API互換のRerankエンドポイント
+- OpenAI API互換のRerankおよびEmbeddingエンドポイント
 - APIリクエストによる動的なモデル選択
 - BGE Rerankerモデルによる高精度な文書再ランキング
+- sentence-transformersによるテキスト埋め込み生成
 - マルチGPUサポート（NVIDIA CUDA、AMD ROCm）と自動検出
 - CPUフォールバックサポート
 - Dockerによる簡単なデプロイメント

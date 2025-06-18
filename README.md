@@ -1,14 +1,15 @@
-# Rerank API Service
+# Rerank & Embedding API Service
 
 [🇯🇵 日本語](README.ja.md) | 🇺🇸 English
 
-OpenAI-compatible Rerank API service using BGE Reranker models for high-precision document reranking.
+OpenAI-compatible Rerank and Embedding API service using BGE Reranker models for document reranking and sentence-transformers for text embeddings.
 
 ## Features
 
-- OpenAI-compatible Rerank API endpoints
+- OpenAI-compatible Rerank and Embedding API endpoints
 - Dynamic model selection via API requests
 - High-precision document reranking using BGE Reranker models
+- Text embeddings generation using sentence-transformers
 - Multi-GPU support (NVIDIA CUDA, AMD ROCm) with automatic detection
 - CPU fallback support
 - Easy deployment with Docker
@@ -17,13 +18,22 @@ OpenAI-compatible Rerank API service using BGE Reranker models for high-precisio
 
 ## Supported Models
 
-This API supports multiple reranking models that can be dynamically selected:
+### Reranking Models
 
 | Model Name | Short Name | Description |
 |-----------|------------|-------------|
 | maidalun1020/bce-reranker-base_v1 | bce-reranker-base_v1 | BGE Reranker Base Model v1 (Default) |
 | BAAI/bge-reranker-base | bge-reranker-base | BGE Reranker Base Model |
 | BAAI/bge-reranker-large | bge-reranker-large | BGE Reranker Large Model |
+
+### Embedding Models
+
+| Model Name | Short Name | Description |
+|-----------|------------|-------------|
+| intfloat/multilingual-e5-base | multilingual-e5-base | Multilingual E5 Base Model (Default) |
+| intfloat/e5-base | e5-base | E5 Base Model |
+| intfloat/e5-large | e5-large | E5 Large Model |
+| intfloat/multilingual-e5-large | multilingual-e5-large | Multilingual E5 Large Model |
 
 ## Quick Start
 
@@ -187,6 +197,54 @@ curl -X POST "http://localhost:7987/v1/rerank" \
 }
 ```
 
+### Embeddings API
+
+#### Create Embeddings
+
+```bash
+curl -X POST "http://localhost:7987/v1/embeddings" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "multilingual-e5-base",
+    "input": "Natural language processing is fascinating."
+  }'
+```
+
+#### Batch Embeddings
+
+```bash
+curl -X POST "http://localhost:7987/v1/embeddings" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "e5-base",
+    "input": [
+      "First text to embed",
+      "Second text to embed",
+      "Third text to embed"
+    ]
+  }'
+```
+
+#### Response Example
+
+```json
+{
+  "object": "list",
+  "model": "multilingual-e5-base",
+  "data": [
+    {
+      "object": "embedding",
+      "index": 0,
+      "embedding": [0.123, -0.456, 0.789, ...]
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 8,
+    "total_tokens": 8
+  }
+}
+```
+
 ### Other Endpoints
 
 #### Health Check
@@ -224,6 +282,30 @@ curl http://localhost:7987/models
 | results[].document | string | Document text (if return_documents=true) |
 | meta | object | Metadata |
 
+### POST /v1/embeddings
+
+#### Request Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| model | string | No | Model to use (short name or full name, default: "multilingual-e5-base") |
+| input | string or array[string] | Yes | Text(s) to embed (max 2048 texts) |
+| encoding_format | string | No | Format for embeddings ("float" or "base64", default: "float") |
+| dimensions | integer | No | Number of dimensions to reduce embeddings to |
+| user | string | No | User identifier |
+
+#### Response
+
+| Field | Type | Description |
+|-------|------|-------------|
+| object | string | Always "list" |
+| model | string | Model name used |
+| data | array | List of embedding objects |
+| data[].object | string | Always "embedding" |
+| data[].index | integer | Index of the input text |
+| data[].embedding | array[float] or string | Embedding vector (float array or base64 string) |
+| usage | object | Token usage information |
+
 ## Environment Variables
 
 | Variable | Default | Description |
@@ -231,8 +313,9 @@ curl http://localhost:7987/models
 | HOST | 0.0.0.0 | Service host |
 | PORT | 7987 | Service port |
 | WORKERS | 1 | Number of workers |
-| RERANKER_MODEL_NAME | maidalun1020/bce-reranker-base_v1 | Default model name |
+| RERANKER_MODEL_NAME | maidalun1020/bce-reranker-base_v1 | Default reranker model name |
 | RERANKER_MODELS_DIR | /app/models | Base directory for model storage |
+| EMBEDDING_MODEL_NAME | intfloat/multilingual-e5-base | Default embedding model name |
 
 ## Development
 

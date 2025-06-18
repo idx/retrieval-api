@@ -2,6 +2,7 @@ import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import Mock, patch
 import torch
+import numpy as np
 
 from app import app, RerankRequest, RerankResponse
 
@@ -250,3 +251,134 @@ class TestRequestValidation:
                 query="test",
                 documents=["doc"] * 1001
             )
+
+
+class TestEmbeddingEndpoint:
+    """Test cases for embedding endpoint"""
+    
+    def test_embeddings_basic(self, client):
+        """Test basic embedding creation"""
+        with patch('app.embedding_models') as mock_models:
+            mock_model = Mock()
+            mock_model.encode.return_value = np.array([[0.1, 0.2, 0.3]])
+            mock_models.__getitem__.return_value = mock_model
+            mock_models.__contains__.return_value = True
+            
+            request_data = {
+                "input": "Hello world",
+                "model": "multilingual-e5-base"
+            }
+            
+            response = client.post("/v1/embeddings", json=request_data)
+            assert response.status_code == 200
+            
+            data = response.json()
+            assert data["object"] == "list"
+            assert data["model"] == "multilingual-e5-base"
+            assert len(data["data"]) == 1
+            assert data["data"][0]["object"] == "embedding"
+            assert data["data"][0]["index"] == 0
+            assert len(data["data"][0]["embedding"]) == 3
+    
+    def test_embeddings_multiple_inputs(self, client):
+        """Test embeddings with multiple inputs"""
+        with patch('app.embedding_models') as mock_models:
+            mock_model = Mock()
+            mock_model.encode.return_value = np.array([[0.1, 0.2], [0.3, 0.4], [0.5, 0.6]])
+            mock_models.__getitem__.return_value = mock_model
+            mock_models.__contains__.return_value = True
+            
+            request_data = {
+                "input": ["text1", "text2", "text3"],
+                "model": "multilingual-e5-base"
+            }
+            
+            response = client.post("/v1/embeddings", json=request_data)
+            assert response.status_code == 200
+            
+            data = response.json()
+            assert len(data["data"]) == 3
+            for i, embedding in enumerate(data["data"]):
+                assert embedding["index"] == i
+                assert len(embedding["embedding"]) == 2
+    
+    def test_embeddings_dimension_reduction(self, client):
+        """Test embeddings with dimension reduction"""
+        with patch('app.embedding_models') as mock_models:
+            mock_model = Mock()
+            mock_model.encode.return_value = np.array([[0.1, 0.2, 0.3, 0.4, 0.5]])
+            mock_models.__getitem__.return_value = mock_model
+            mock_models.__contains__.return_value = True
+            
+            request_data = {
+                "input": "test text",
+                "model": "multilingual-e5-base",
+                "dimensions": 3
+            }
+            
+            response = client.post("/v1/embeddings", json=request_data)
+            assert response.status_code == 200
+            
+            data = response.json()
+            assert len(data["data"][0]["embedding"]) == 3
+    
+    def test_embeddings_base64_encoding(self, client):
+        """Test embeddings with base64 encoding"""
+        with patch('app.embedding_models') as mock_models:
+            mock_model = Mock()
+            mock_model.encode.return_value = np.array([[0.1, 0.2, 0.3]], dtype=np.float32)
+            mock_models.__getitem__.return_value = mock_model
+            mock_models.__contains__.return_value = True
+            
+            request_data = {
+                "input": "test",
+                "model": "multilingual-e5-base",
+                "encoding_format": "base64"
+            }
+            
+            response = client.post("/v1/embeddings", json=request_data)
+            assert response.status_code == 200
+            
+            data = response.json()
+            assert isinstance(data["data"][0]["embedding"], str)  # Base64 string
+    
+    def test_embeddings_empty_input(self, client):
+        """Test embeddings with empty input"""
+        request_data = {
+            "input": ""
+        }
+        
+        response = client.post("/v1/embeddings", json=request_data)
+        assert response.status_code == 422  # Validation error
+    
+    def test_embeddings_too_many_inputs(self, client):
+        """Test embeddings with too many inputs"""
+        request_data = {
+            "input": ["text"] * 2049  # More than 2048
+        }
+        
+        response = client.post("/v1/embeddings", json=request_data)
+        assert response.status_code == 422  # Validation error
+    
+    def test_embeddings_model_loading(self, client):
+        """Test embeddings with model loading"""
+        from embedding_loader import EmbeddingModel
+        
+        with patch('app.embedding_models', {}) as mock_models:
+            with patch('app.EmbeddingModel') as mock_embedding_class:
+                mock_model = Mock()
+                mock_model.encode.return_value = np.array([[0.1, 0.2]])
+                mock_embedding_class.return_value = mock_model
+                
+                request_data = {
+                    "input": "test",
+                    "model": "e5-base"  # Will be converted to intfloat/e5-base
+                }
+                
+                response = client.post("/v1/embeddings", json=request_data)
+                assert response.status_code == 200
+                
+                # Check model was loaded with correct name
+                mock_embedding_class.assert_called_once()
+                call_args = mock_embedding_class.call_args[1]
+                assert call_args["model_name"] == "intfloat/e5-base"
