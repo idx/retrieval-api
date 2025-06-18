@@ -1,6 +1,6 @@
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
-pydantic==2.5.0
+pydantic==2.11.7
 # CPU-only PyTorch
 torch==2.1.1+cpu --index-url https://download.pytorch.org/whl/cpu
 transformers==4.36.0
