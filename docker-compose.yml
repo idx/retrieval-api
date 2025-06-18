@@ -1,6 +1,11 @@
 services:
   rerank-api:
-    build: .
+    build: 
+      context: .
+      args:
+        - HTTP_PROXY=${HTTP_PROXY:-}
+        - HTTPS_PROXY=${HTTPS_PROXY:-}
+        - NO_PROXY=${NO_PROXY:-}
     image: rerank-api:latest
     container_name: rerank-api
     ports:
@@ -13,6 +18,9 @@ services:
       - RERANKER_MODELS_DIR=/app/models
       - EMBEDDING_MODEL_NAME=intfloat/multilingual-e5-base
       - TRANSFORMERS_CACHE=/root/.cache/huggingface
+      - HTTP_PROXY=${HTTP_PROXY:-}
+      - HTTPS_PROXY=${HTTPS_PROXY:-}
+      - NO_PROXY=${NO_PROXY:-}
     volumes:
       - ./models:/app/models
       - huggingface-cache:/root/.cache/huggingface

@@ -1,5 +1,13 @@
 FROM python:3.10-slim
 
+# Set proxy environment variables if provided
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+ARG NO_PROXY
+ENV HTTP_PROXY=${HTTP_PROXY}
+ENV HTTPS_PROXY=${HTTPS_PROXY}
+ENV NO_PROXY=${NO_PROXY}
+
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
@@ -17,7 +25,7 @@ RUN useradd -m -u 1000 appuser && \
 # Copy requirements first for better caching
 COPY --chown=appuser:appuser requirements.txt .
 
-# Install Python dependencies
+# Install Python dependencies with proxy support
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Create models directory with proper permissions

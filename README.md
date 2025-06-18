@@ -57,6 +57,12 @@ chmod +x start.sh
 # Build for NVIDIA GPU
 docker build -t rerank-api .
 
+# Build with proxy support
+docker build -t rerank-api \
+  --build-arg HTTP_PROXY=http://proxy.company.com:8080 \
+  --build-arg HTTPS_PROXY=http://proxy.company.com:8080 \
+  --build-arg NO_PROXY=localhost,127.0.0.1 .
+
 # Build for AMD GPU  
 docker build -f Dockerfile.amd -t rerank-api:amd .
 
@@ -64,6 +70,15 @@ docker build -f Dockerfile.amd -t rerank-api:amd .
 docker run -d --name rerank-api \
   -p 7987:7987 \
   --gpus all \
+  rerank-api
+
+# Run with proxy settings
+docker run -d --name rerank-api \
+  -p 7987:7987 \
+  --gpus all \
+  -e HTTP_PROXY=http://proxy.company.com:8080 \
+  -e HTTPS_PROXY=http://proxy.company.com:8080 \
+  -e NO_PROXY=localhost,127.0.0.1 \
   rerank-api
 
 # Run with AMD GPU support
@@ -84,6 +99,12 @@ docker run -d --name rerank-api \
 
 ```bash
 # NVIDIA GPU support
+docker-compose up -d
+
+# With proxy settings
+export HTTP_PROXY=http://proxy.company.com:8080
+export HTTPS_PROXY=http://proxy.company.com:8080
+export NO_PROXY=localhost,127.0.0.1
 docker-compose up -d
 
 # AMD GPU support
@@ -316,6 +337,9 @@ curl http://localhost:7987/models
 | RERANKER_MODEL_NAME | maidalun1020/bce-reranker-base_v1 | Default reranker model name |
 | RERANKER_MODELS_DIR | /app/models | Base directory for model storage |
 | EMBEDDING_MODEL_NAME | intfloat/multilingual-e5-base | Default embedding model name |
+| HTTP_PROXY | - | HTTP proxy server URL |
+| HTTPS_PROXY | - | HTTPS proxy server URL |
+| NO_PROXY | - | Comma-separated list of hosts to bypass proxy |
 
 ## Development
 
