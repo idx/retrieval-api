@@ -10,8 +10,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, field_validator, model_validator
 import torch
 
-from model_loader import ModelManager
-from embedding_loader import EmbeddingModel
+from reranker_loader import ModelManager
+from embedding_loader import EmbeddingModelManager
 
 # Configure logging
 logging.basicConfig(
@@ -20,19 +20,19 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Global model manager instance
+# Global model manager instances
 model_manager: Optional[ModelManager] = None
-embedding_models: Dict[str, EmbeddingModel] = {}
+embedding_manager: Optional[EmbeddingModelManager] = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    global model_manager
+    global model_manager, embedding_manager
     try:
         default_model = os.getenv("RERANKER_MODEL_NAME", "maidalun1020/bce-reranker-base_v1")
         models_base_dir = os.getenv("RERANKER_MODELS_DIR", "/app/models")
-        default_embedding_model = os.getenv("EMBEDDING_MODEL_NAME", "intfloat/multilingual-e5-base")
+        default_embedding_model = os.getenv("EMBEDDING_MODEL_NAME", "BAAI/bge-m3")
         
         logger.info(f"Initializing model manager with default model: {default_model}")
         model_manager = ModelManager(
@@ -40,20 +40,24 @@ async def lifespan(app: FastAPI):
             models_base_dir=models_base_dir
         )
         
-        # Pre-load default model
+        # Pre-load default reranker model
         logger.info("Pre-loading default reranker model...")
         model_manager.load_model(default_model)
         logger.info("Model manager initialized successfully")
         
-        # Pre-load default embedding model
-        logger.info(f"Pre-loading default embedding model: {default_embedding_model}")
-        embedding_models[default_embedding_model] = EmbeddingModel(
-            model_name=default_embedding_model,
-            model_dir=os.path.join(models_base_dir, "embeddings", default_embedding_model.replace("/", "_"))
+        # Initialize embedding manager
+        logger.info(f"Initializing embedding manager with default model: {default_embedding_model}")
+        embedding_manager = EmbeddingModelManager(
+            default_model=default_embedding_model,
+            models_base_dir=os.path.join(models_base_dir, "embeddings")
         )
-        logger.info("Embedding model initialized successfully")
+        
+        # Pre-load default embedding model
+        logger.info("Pre-loading default embedding model...")
+        embedding_manager.load_model(default_embedding_model)
+        logger.info("Embedding manager initialized successfully")
     except Exception as e:
-        logger.error(f"Failed to initialize model manager: {str(e)}")
+        logger.error(f"Failed to initialize model managers: {str(e)}")
         raise
     
     yield
@@ -62,8 +66,9 @@ async def lifespan(app: FastAPI):
     if model_manager:
         model_manager.clear_cache()
         logger.info("Model manager cleaned up")
-    embedding_models.clear()
-    logger.info("Embedding models cleaned up")
+    if embedding_manager:
+        embedding_manager.clear_cache()
+        logger.info("Embedding manager cleaned up")
 
 
 # Initialize FastAPI app

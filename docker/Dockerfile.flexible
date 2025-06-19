@@ -22,7 +22,7 @@ COPY --chown=appuser:appuser requirements*.txt ./
 RUN if [ "$COMPUTE_MODE" = "cpu" ]; then \
         echo "Installing CPU-only dependencies..." && \
         pip install --no-cache-dir torch==2.1.1+cpu --index-url https://download.pytorch.org/whl/cpu && \
-        pip install --no-cache-dir -r requirements.txt --no-deps; \
+        pip install --no-cache-dir -r requirements.txt; \
     else \
         echo "Installing dependencies with GPU support..." && \
         pip install --no-cache-dir -r requirements.txt; \
