@@ -1,13 +1,13 @@
-# Rerank API Reference
+# Retrieval API Reference
 
 ## Overview
 
-The Rerank API provides OpenAI-compatible endpoints for document reranking using BGE Reranker models. This service supports dynamic model selection and efficient caching.
+The Retrieval API provides OpenAI-compatible endpoints for document reranking and text embedding using state-of-the-art models. This service supports dynamic model selection, efficient caching, and both Japanese and multilingual models.
 
 ## Base URL
 
 ```
-http://localhost:7987
+http://localhost:8000
 ```
 
 ## Authentication
@@ -20,13 +20,28 @@ Authorization: Bearer your-token-here
 
 ## Models
 
-### Supported Models
+### Supported Reranker Models
 
-| Model Name | Short Name | Description | Max Length |
-|-----------|------------|-------------|------------|
-| maidalun1020/bce-reranker-base_v1 | bce-reranker-base_v1 | BGE Reranker Base Model v1 (Default) | 512 |
-| BAAI/bge-reranker-base | bge-reranker-base | BGE Reranker Base Model | 512 |
-| BAAI/bge-reranker-large | bge-reranker-large | BGE Reranker Large Model | 512 |
+| Model Name | Short Name | Description | Max Length | Language |
+|-----------|------------|-------------|------------|----------|
+| maidalun1020/bce-reranker-base_v1 | bce-reranker-base_v1 | BGE Reranker Base Model v1 (Default) | 512 | Multilingual |
+| jinaai/jina-reranker-v2-base-multilingual | jina-reranker-v2 | Jina Reranker v2 Multilingual (100+ languages) | 1024 | Multilingual |
+| mixedbread-ai/mxbai-rerank-large-v1 | mxbai-rerank-large | MixedBread AI Rerank Large v1 | 512 | Multilingual |
+| hotchpotch/japanese-reranker-cross-encoder-large-v1 | japanese-reranker-large | Japanese Reranker Large (Cross-encoder) | 512 | Japanese |
+| hotchpotch/japanese-reranker-cross-encoder-base-v1 | japanese-reranker-base | Japanese Reranker Base (Cross-encoder) | 512 | Japanese |
+| pkshatech/GLuCoSE-base-ja | glucose-base-ja | GLuCoSE Base Japanese Model | 512 | Japanese |
+
+### Supported Embedding Models
+
+| Model Name | Short Name | Description | Dimensions | Language |
+|-----------|------------|-------------|------------|----------|
+| BAAI/bge-m3 | bge-m3 | BGE M3 Multilingual Embedding (Default) | 1024 | Multilingual |
+| intfloat/multilingual-e5-large | multilingual-e5-large | Multilingual E5 Large (100+ languages) | 1024 | Multilingual |
+| mixedbread-ai/mxbai-embed-large-v1 | mxbai-embed-large | MixedBread AI Embed Large v1 | 1024 | Multilingual |
+| cl-nagoya/ruri-large | ruri-large | RURI Large Japanese Embedding | 768 | Japanese |
+| cl-nagoya/ruri-base | ruri-base | RURI Base Japanese Embedding | 768 | Japanese |
+| MU-Kindai/Japanese-SimCSE-BERT-large-unsup | japanese-simcse-large | Japanese SimCSE BERT Large | 1024 | Japanese |
+| sonoisa/sentence-luke-japanese-base-lite | sentence-luke-base | Sentence LUKE Japanese Base | 768 | Japanese |
 
 ### GET /models
 
@@ -40,6 +55,12 @@ List all available models.
   "data": [
     {
       "id": "bce-reranker-base_v1",
+      "object": "model",
+      "created": 1699123456,
+      "owned_by": "huggingface"
+    },
+    {
+      "id": "bge-m3",
       "object": "model",
       "created": 1699123456,
       "owned_by": "huggingface"
@@ -58,12 +79,13 @@ Rerank a list of documents based on their relevance to a query.
 
 ```json
 {
-  "model": "bce-reranker-base_v1",
-  "query": "What is machine learning?",
+  "model": "jina-reranker-v2",
+  "query": "日本の伝統的な料理について教えてください",
   "documents": [
-    "Machine learning is a branch of artificial intelligence.",
-    "Today is a sunny day.",
-    "Deep learning is a subset of machine learning."
+    "寿司は日本の代表的な料理で、新鮮な魚を使用します。",
+    "今日は天気が良いです。",
+    "天ぷらは江戸時代から親しまれている日本料理です。",
+    "パリは美しい都市です。"
   ],
   "top_n": 2,
   "return_documents": true
@@ -85,42 +107,87 @@ Rerank a list of documents based on their relevance to a query.
 
 ```json
 {
-  "model": "bce-reranker-base_v1",
+  "model": "jinaai/jina-reranker-v2-base-multilingual",
   "results": [
     {
       "index": 0,
-      "relevance_score": 0.95123,
-      "document": "Machine learning is a branch of artificial intelligence."
+      "relevance_score": 0.9823,
+      "document": "寿司は日本の代表的な料理で、新鮮な魚を使用します。"
     },
     {
       "index": 2,
-      "relevance_score": 0.87456,
-      "document": "Deep learning is a subset of machine learning."
+      "relevance_score": 0.9456,
+      "document": "天ぷらは江戸時代から親しまれている日本料理です。"
     }
   ],
   "meta": {
     "api_version": "v1",
-    "processing_time_ms": 145,
-    "total_documents": 3,
+    "processing_time_ms": 245,
+    "total_documents": 4,
     "returned_documents": 2
   }
 }
 ```
 
-#### Response Fields
+## Embeddings
 
-| Field | Type | Description |
-|-------|------|-------------|
-| model | string | Model name used for reranking |
-| results | array | Array of reranking results |
-| results[].index | integer | Original index of the document in the input array |
-| results[].relevance_score | float | Relevance score between 0 and 1 |
-| results[].document | string | Document text (only if return_documents=true) |
-| meta | object | Metadata about the request |
-| meta.api_version | string | API version used |
-| meta.processing_time_ms | integer | Processing time in milliseconds |
-| meta.total_documents | integer | Total number of input documents |
-| meta.returned_documents | integer | Number of documents returned |
+### POST /v1/embeddings
+
+Generate embeddings for given text(s).
+
+#### Request Body
+
+```json
+{
+  "model": "ruri-large",
+  "input": [
+    "東京は日本の首都です",
+    "機械学習は人工知能の一分野です",
+    "自然言語処理は重要な技術です"
+  ],
+  "encoding_format": "float"
+}
+```
+
+#### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| model | string | No | Model to use for embeddings (default: "bge-m3") |
+| input | string or array[string] | Yes | Text(s) to embed |
+| encoding_format | string | No | Format of embeddings: "float" or "base64" (default: "float") |
+| dimensions | integer | No | Number of dimensions for embeddings (model-dependent) |
+| user | string | No | User identifier |
+
+#### Response
+
+```json
+{
+  "object": "list",
+  "data": [
+    {
+      "object": "embedding",
+      "index": 0,
+      "embedding": [0.0234, -0.0156, 0.0789, ...]
+    },
+    {
+      "object": "embedding", 
+      "index": 1,
+      "embedding": [0.0412, -0.0298, 0.0634, ...]
+    },
+    {
+      "object": "embedding",
+      "index": 2, 
+      "embedding": [0.0156, -0.0387, 0.0823, ...]
+    }
+  ],
+  "model": "cl-nagoya/ruri-large",
+  "usage": {
+    "prompt_tokens": 15,
+    "total_tokens": 15
+  }
+}
+```
 
 ## Health Check
 
@@ -135,9 +202,16 @@ Check the health status of the API service.
   "status": "healthy",
   "timestamp": "2024-01-15T10:30:45.123456",
   "model_manager_loaded": true,
-  "default_model": "maidalun1020/bce-reranker-base_v1",
-  "loaded_models": [
-    "maidalun1020/bce-reranker-base_v1"
+  "embedding_manager_loaded": true,
+  "default_reranker_model": "maidalun1020/bce-reranker-base_v1",
+  "default_embedding_model": "BAAI/bge-m3",
+  "loaded_reranker_models": [
+    "maidalun1020/bce-reranker-base_v1",
+    "jinaai/jina-reranker-v2-base-multilingual"
+  ],
+  "loaded_embedding_models": [
+    "BAAI/bge-m3",
+    "cl-nagoya/ruri-large"
   ]
 }
 ```
@@ -152,13 +226,22 @@ Get basic information about the API service.
 
 ```json
 {
-  "message": "Rerank API Service",
+  "message": "Retrieval API Service",
   "version": "1.0.0",
   "endpoints": {
     "rerank": "/v1/rerank",
+    "embeddings": "/v1/embeddings",
     "health": "/health",
     "models": "/models"
-  }
+  },
+  "features": [
+    "Document reranking",
+    "Text embeddings",
+    "Japanese language support",
+    "Multilingual models",
+    "Model pre-loading",
+    "Dynamic model switching"
+  ]
 }
 ```
 
@@ -187,101 +270,79 @@ Get basic information about the API service.
 | 500 | Internal Server Error |
 | 503 | Service Unavailable - Model not loaded |
 
-### Common Errors
-
-#### 400 Bad Request
-
-```json
-{
-  "error": {
-    "message": "Documents list cannot be empty",
-    "type": "validation_error",
-    "code": 400
-  }
-}
-```
-
-#### 422 Validation Error
-
-```json
-{
-  "detail": [
-    {
-      "loc": ["body", "query"],
-      "msg": "field required",
-      "type": "value_error.missing"
-    }
-  ]
-}
-```
-
-#### 503 Service Unavailable
-
-```json
-{
-  "error": {
-    "message": "Model manager not initialized",
-    "type": "service_error",
-    "code": 503
-  }
-}
-```
-
-## Rate Limiting
-
-Currently, no rate limiting is implemented. Consider implementing rate limiting for production use.
-
 ## Request Examples
 
 ### cURL Examples
 
-#### Basic Reranking
+#### Japanese Reranking
 
 ```bash
-curl -X POST "http://localhost:7987/v1/rerank" \
+curl -X POST "http://localhost:8000/v1/rerank" \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "bce-reranker-base_v1",
-    "query": "machine learning",
+    "model": "japanese-reranker-large",
+    "query": "日本の伝統文化について",
     "documents": [
-      "ML is a subset of AI",
-      "Weather is nice today",
-      "Neural networks are powerful"
+      "茶道は日本の伝統的な文化です。",
+      "今日は雨が降っています。",
+      "歌舞伎は日本の古典芸能の一つです。",
+      "コンピューターは便利な道具です。"
+    ],
+    "top_n": 2,
+    "return_documents": true
+  }'
+```
+
+#### Japanese Embeddings
+
+```bash
+curl -X POST "http://localhost:8000/v1/embeddings" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "ruri-large",
+    "input": [
+      "東京は日本の首都です",
+      "機械学習は人工知能の一分野です"
     ]
   }'
 ```
 
-#### With Authorization
+#### Multilingual Models
 
 ```bash
-curl -X POST "http://localhost:7987/v1/rerank" \
+curl -X POST "http://localhost:8000/v1/rerank" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer your-token" \
   -d '{
-    "model": "bge-reranker-large",
-    "query": "artificial intelligence",
-    "documents": ["AI doc 1", "AI doc 2"],
-    "top_n": 1,
-    "return_documents": true
+    "model": "jina-reranker-v2",
+    "query": "artificial intelligence applications",
+    "documents": [
+      "AI is used in healthcare for diagnosis",
+      "The weather is nice today", 
+      "Machine learning powers recommendation systems",
+      "Natural language processing enables chatbots"
+    ],
+    "top_n": 3
   }'
 ```
 
 ### Python Examples
 
-#### Using requests
+#### Using requests for Reranking
 
 ```python
 import requests
 
+# Japanese reranking
 response = requests.post(
-    "http://localhost:7987/v1/rerank",
+    "http://localhost:8000/v1/rerank",
     json={
-        "model": "bce-reranker-base_v1",
-        "query": "machine learning",
+        "model": "japanese-reranker-base",
+        "query": "日本の観光地について教えてください",
         "documents": [
-            "Machine learning is a subset of AI",
-            "Today is sunny",
-            "Deep learning uses neural networks"
+            "富士山は日本で最も有名な観光地の一つです。",
+            "今日の天気は晴れです。",
+            "京都には多くの歴史的な寺院があります。",
+            "東京タワーは東京のランドマークです。"
         ],
         "top_n": 2,
         "return_documents": True
@@ -289,143 +350,246 @@ response = requests.post(
 )
 
 result = response.json()
-print(f"Top result: {result['results'][0]}")
+for i, res in enumerate(result['results']):
+    print(f"{i+1}. Score: {res['relevance_score']:.4f}")
+    print(f"   Document: {res['document']}")
 ```
 
-#### Using httpx (async)
+#### Using requests for Embeddings
 
 ```python
-import httpx
-import asyncio
+import requests
+import numpy as np
 
-async def rerank_async():
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            "http://localhost:7987/v1/rerank",
-            json={
-                "model": "bge-reranker-base",
-                "query": "natural language processing",
-                "documents": [
-                    "NLP is a field of AI",
-                    "Cooking is fun",
-                    "Text processing is important"
-                ]
-            }
-        )
-        return response.json()
+# Generate embeddings
+response = requests.post(
+    "http://localhost:8000/v1/embeddings",
+    json={
+        "model": "bge-m3",
+        "input": [
+            "Tokyo is the capital of Japan",
+            "Machine learning is a subset of AI",
+            "Natural language processing is important"
+        ]
+    }
+)
 
-result = asyncio.run(rerank_async())
+result = response.json()
+embeddings = [item['embedding'] for item in result['data']]
+
+# Calculate similarity between first two embeddings
+emb1 = np.array(embeddings[0])
+emb2 = np.array(embeddings[1])
+similarity = np.dot(emb1, emb2) / (np.linalg.norm(emb1) * np.linalg.norm(emb2))
+print(f"Similarity: {similarity:.4f}")
 ```
 
 ### JavaScript Examples
 
-#### Using fetch
+#### Using fetch for Multilingual Reranking
 
 ```javascript
-const response = await fetch('http://localhost:7987/v1/rerank', {
+const response = await fetch('http://localhost:8000/v1/rerank', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
   },
   body: JSON.stringify({
-    model: 'bce-reranker-base_v1',
-    query: 'machine learning',
+    model: 'mxbai-rerank-large',
+    query: 'sustainable energy solutions',
     documents: [
-      'ML is a subset of AI',
-      'Weather is nice',
-      'Neural networks are powerful'
+      'Solar panels convert sunlight into electricity',
+      'Today is a beautiful day',
+      'Wind turbines generate clean energy',
+      'Electric vehicles reduce carbon emissions'
     ],
-    top_n: 2
+    top_n: 3,
+    return_documents: true
   })
 });
 
 const result = await response.json();
-console.log(result);
+result.results.forEach((item, index) => {
+  console.log(`${index + 1}. Score: ${item.relevance_score.toFixed(4)}`);
+  console.log(`   Document: ${item.document}`);
+});
 ```
 
-#### Using axios
+#### Using fetch for Embeddings
 
 ```javascript
-const axios = require('axios');
-
-const result = await axios.post('http://localhost:7987/v1/rerank', {
-  model: 'bge-reranker-large',
-  query: 'artificial intelligence',
-  documents: [
-    'AI simulates human intelligence',
-    'Today is Monday',
-    'Machine learning is part of AI'
-  ],
-  return_documents: true
+const response = await fetch('http://localhost:8000/v1/embeddings', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    model: 'multilingual-e5-large',
+    input: [
+      'Artificial intelligence is transforming industries',
+      'Deep learning models require large datasets'
+    ]
+  })
 });
 
-console.log(result.data);
+const result = await response.json();
+console.log(`Generated ${result.data.length} embeddings`);
+console.log(`Embedding dimension: ${result.data[0].embedding.length}`);
 ```
+
+## Model Features
+
+### Pre-loading
+
+- Default models are pre-loaded during service startup
+- Subsequent model requests are cached for faster response times
+- Models are loaded on-demand when first requested
+
+### Language Support
+
+#### Japanese Models
+- Optimized for Japanese text processing
+- Support for Japanese-specific tokenization
+- Trained on Japanese corpora for better accuracy
+
+#### Multilingual Models
+- Support for 100+ languages
+- Cross-lingual capabilities
+- Consistent performance across different languages
+
+### Dynamic Model Switching
+
+- Switch between models within the same request
+- Automatic fallback to default models on errors
+- Seamless model management and caching
 
 ## Performance Considerations
 
 ### Model Loading
-
-- Models are loaded on first use and cached in memory
-- Initial requests may take longer due to model loading
-- Subsequent requests with the same model are faster
+- First request to a new model may take 10-30 seconds
+- Models are cached in memory after loading
+- Pre-loaded models respond immediately
 
 ### Batch Processing
-
-- Process multiple documents in a single request for better performance
-- Maximum 1000 documents per request
-- Consider breaking larger document sets into batches
+- Process multiple documents/texts in single requests
+- More efficient than individual requests
+- Recommended for production workloads
 
 ### Memory Usage
-
-- Each loaded model consumes GPU/CPU memory
-- Models are cached until service restart
-- Monitor memory usage in production environments
+- Each model consumes 500MB-2GB of memory
+- Monitor memory usage with multiple models
+- Consider model rotation for memory constraints
 
 ## Development and Testing
 
 ### Local Testing
 
-Use the provided test script:
-
+Test reranking functionality:
 ```bash
-python test_api_example.py
+python -c "
+import requests
+response = requests.post('http://localhost:8000/v1/rerank', 
+    json={'query': 'test', 'documents': ['doc1', 'doc2']})
+print(response.json())
+"
+```
+
+Test embedding functionality:
+```bash
+python -c "
+import requests
+response = requests.post('http://localhost:8000/v1/embeddings',
+    json={'input': ['test text', 'another text']})
+print(f'Generated {len(response.json()[\"data\"])} embeddings')
+"
 ```
 
 ### Integration Testing
 
-Example test case:
+Example comprehensive test:
 
 ```python
-def test_rerank_api():
-    response = requests.post(
-        "http://localhost:7987/v1/rerank",
+import requests
+import numpy as np
+
+def test_retrieval_api():
+    base_url = "http://localhost:8000"
+    
+    # Test reranking
+    rerank_response = requests.post(
+        f"{base_url}/v1/rerank",
         json={
-            "query": "test query",
-            "documents": ["doc1", "doc2"],
-            "model": "bce-reranker-base_v1"
+            "query": "machine learning",
+            "documents": ["ML is AI", "Weather today", "Deep learning"],
+            "model": "jina-reranker-v2"
         }
     )
+    assert rerank_response.status_code == 200
+    rerank_data = rerank_response.json()
+    assert len(rerank_data["results"]) == 3
     
-    assert response.status_code == 200
-    data = response.json()
-    assert "results" in data
-    assert len(data["results"]) == 2
-    assert all("relevance_score" in result for result in data["results"])
+    # Test embeddings
+    embed_response = requests.post(
+        f"{base_url}/v1/embeddings",
+        json={
+            "input": ["test text 1", "test text 2"],
+            "model": "bge-m3"
+        }
+    )
+    assert embed_response.status_code == 200
+    embed_data = embed_response.json()
+    assert len(embed_data["data"]) == 2
+    
+    # Test health
+    health_response = requests.get(f"{base_url}/health")
+    assert health_response.status_code == 200
+    assert health_response.json()["status"] == "healthy"
+    
+    print("All tests passed!")
+
+test_retrieval_api()
 ```
 
 ## Deployment Notes
 
 ### Docker Deployment
 
-- Ensure adequate memory allocation (8GB+ recommended)
-- Mount model cache directory for persistence
-- Configure GPU access if available
+```yaml
+# docker-compose.yml
+version: '3.8'
+services:
+  retrieval-api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - RERANKER_MODEL_NAME=jinaai/jina-reranker-v2-base-multilingual
+      - EMBEDDING_MODEL_NAME=BAAI/bge-m3
+      - RERANKER_MODELS_DIR=/app/models
+    volumes:
+      - ./models:/app/models
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+        reservations:
+          memory: 4G
+```
 
 ### Production Considerations
 
-- Implement proper logging and monitoring
-- Set up health checks and alerting
-- Consider load balancing for high availability
-- Implement rate limiting and authentication
-- Monitor model memory usage and performance
+- **Memory**: Allocate 8GB+ for multiple models
+- **Storage**: 20GB+ for model cache persistence  
+- **Monitoring**: Track model load times and memory usage
+- **Scaling**: Use multiple instances with load balancing
+- **Security**: Implement proper authentication and rate limiting
+- **Logging**: Configure structured logging for debugging
+
+### Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| RERANKER_MODEL_NAME | Default reranker model | maidalun1020/bce-reranker-base_v1 |
+| EMBEDDING_MODEL_NAME | Default embedding model | BAAI/bge-m3 |
+| RERANKER_MODELS_DIR | Model cache directory | /app/models |
+| CUDA_VISIBLE_DEVICES | GPU devices (empty for CPU) | "" |

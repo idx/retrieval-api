@@ -1,20 +1,20 @@
-# Rerank & Embedding API Service
+# Retrieval API Service
 
 [🇯🇵 日本語](README.ja.md) | 🇺🇸 English
 
-OpenAI-compatible Rerank and Embedding API service using BGE Reranker models for document reranking and sentence-transformers for text embeddings.
+OpenAI-compatible Retrieval API service providing document reranking and text embeddings using state-of-the-art models with unified model management and Japanese language support.
 
 ## Features
 
-- OpenAI-compatible Rerank and Embedding API endpoints
-- Dynamic model selection via API requests
-- High-precision document reranking using BGE Reranker models
-- Text embeddings generation using sentence-transformers
-- Multi-GPU support (NVIDIA CUDA, AMD ROCm) with automatic detection
-- CPU fallback support
-- Easy deployment with Docker
-- Async processing for high-speed responses
-- Model caching and efficient memory management
+- **Dual API Support**: OpenAI-compatible Rerank and Embedding API endpoints
+- **Unified Model Management**: Pre-loading, caching, and dynamic switching for both rerankers and embeddings
+- **Japanese Language Support**: Specialized models for Japanese text processing
+- **Multilingual Models**: Support for 100+ languages with high-performance models
+- **Dynamic Model Selection**: Switch between models via API requests with automatic fallback
+- **Multi-GPU Support**: NVIDIA CUDA, AMD ROCm with automatic detection
+- **CPU Fallback**: Seamless operation without GPU dependencies
+- **Docker Deployment**: Easy deployment with multiple Docker configurations
+- **Production Ready**: Async processing, memory management, and monitoring
 
 ## Supported Models
 
@@ -26,30 +26,15 @@ OpenAI-compatible Rerank and Embedding API service using BGE Reranker models for
 |-----------|------------|------------|------|-------------|
 | hotchpotch/japanese-reranker-cross-encoder-large-v1 | japanese-reranker-large | 512 | 334MB | Japanese Reranker Large v1 (日本語最高性能) |
 | hotchpotch/japanese-reranker-cross-encoder-base-v1 | japanese-reranker-base | 512 | 111MB | Japanese Reranker Base v1 (日本語バランス型) |
-| hotchpotch/japanese-reranker-cross-encoder-small-v1 | japanese-reranker-small | 512 | 67MB | Japanese Reranker Small v1 (高速推論) |
-| hotchpotch/japanese-bge-reranker-v2-m3-v1 | japanese-bge-v2-m3 | 8192 | ~500MB | Japanese BGE Reranker v2-M3 v1 (日本語特化版) |
+| pkshatech/GLuCoSE-base-ja | glucose-base-ja | 512 | ~400MB | GLuCoSE Base Japanese Model |
 
 #### Multilingual Models
 
 | Model Name | Short Name | Max Length | Size | Description |
 |-----------|------------|------------|------|-------------|
-| jinaai/jina-reranker-v2-base-multilingual | jina-reranker-v2-multilingual | 1024 | 278MB | Jina Reranker v2 Multilingual (100+ languages) **Default** |
-| BAAI/bge-reranker-v2-m3 | bge-reranker-v2-m3 | 32000 | ~600MB | BGE Reranker v2 M3 (Multilingual, up to 32k tokens) |
-| Alibaba-NLP/gte-multilingual-reranker-base | gte-multilingual-reranker | 8192 | 560MB | GTE Multilingual Reranker (70+ languages) |
-| mixedbread-ai/mxbai-rerank-large-v1 | mxbai-rerank-large | 8192 | 1.5GB | MixedBread AI Rerank Large v1 (high performance) |
-| Cohere/rerank-multilingual-v3.0 | cohere-rerank-multilingual | 4096 | ~400MB | Cohere Rerank Multilingual v3.0 |
-
-#### English Language Models
-
-| Model Name | Short Name | Max Length | Size | Description |
-|-----------|------------|------------|------|-------------|
-| jinaai/jina-reranker-v1-turbo-en | jina-reranker-turbo | 8192 | 37.8MB | Jina Reranker v1 Turbo (fast inference) |
-
-#### Legacy Models
-
-| Model Name | Short Name | Max Length | Size | Description |
-|-----------|------------|------------|------|-------------|
-| maidalun1020/bce-reranker-base_v1 | bce-reranker-base_v1 | 512 | ~400MB | BGE Reranker Base Model v1 (Legacy) |
+| maidalun1020/bce-reranker-base_v1 | bce-reranker-base_v1 | 512 | ~400MB | BGE Reranker Base Model v1 **Default** |
+| jinaai/jina-reranker-v2-base-multilingual | jina-reranker-v2 | 1024 | 278MB | Jina Reranker v2 Multilingual (100+ languages) |
+| mixedbread-ai/mxbai-rerank-large-v1 | mxbai-rerank-large | 512 | 1.5GB | MixedBread AI Rerank Large v1 (high performance) |
 
 ### Embedding Models
 
@@ -57,31 +42,20 @@ OpenAI-compatible Rerank and Embedding API service using BGE Reranker models for
 
 | Model Name | Short Name | Max Length | Dimensions | Description |
 |-----------|------------|------------|------------|-------------|
-| cl-nagoya/ruri-large | ruri-large | 512 | 1024 | Ruri Large Japanese Embedding (JMTEB最高性能) |
-| cl-nagoya/ruri-base | ruri-base | 512 | 768 | Ruri Base Japanese Embedding (日本語バランス型) |
-| MU-Kindai/Japanese-SimCSE-BERT-large-unsup | japanese-simcse-large | 512 | 1024 | Japanese SimCSE BERT Large (教師なし学習) |
-| sonoisa/sentence-luke-japanese-base-lite | luke-japanese-base | 512 | 768 | LUKE Japanese Base Lite (知識強化型) |
-| pkshatech/GLuCoSE-base-ja-v2 | glucose-ja-v2 | 512 | 768 | GLuCoSE Japanese v2 (企業開発) |
+| cl-nagoya/ruri-large | ruri-large | 512 | 768 | RURI Large Japanese Embedding (JMTEB最高性能) |
+| cl-nagoya/ruri-base | ruri-base | 512 | 768 | RURI Base Japanese Embedding (日本語バランス型) |
+| MU-Kindai/Japanese-SimCSE-BERT-large-unsup | japanese-simcse-large | 512 | 1024 | Japanese SimCSE BERT Large |
+| sonoisa/sentence-luke-japanese-base-lite | sentence-luke-base | 512 | 768 | LUKE Japanese Base Lite |
+| pkshatech/GLuCoSE-base-ja-v2 | glucose-base-ja-v2 | 512 | 768 | GLuCoSE Japanese v2 |
 
 #### Multilingual Models
 
 | Model Name | Short Name | Max Length | Dimensions | Description |
 |-----------|------------|------------|------------|-------------|
 | BAAI/bge-m3 | bge-m3 | 8192 | 1024 | BGE M3 Multilingual Embedding **Default** |
-| nvidia/NV-Embed-v2 | nv-embed-v2 | 32768 | 4096 | NVIDIA NV-Embed v2 (SOTA performance) |
-| intfloat/e5-mistral-7b-instruct | e5-mistral-7b | 32768 | 4096 | E5 Mistral 7B Instruct (high quality) |
-| mixedbread-ai/mxbai-embed-large-v1 | mxbai-embed-large | 512 | 1024 | MixedBread AI Large v1 (production ready) |
 | intfloat/multilingual-e5-large | multilingual-e5-large | 512 | 1024 | Multilingual E5 Large (100+ languages) |
-| intfloat/multilingual-e5-base | multilingual-e5-base | 512 | 768 | Multilingual E5 Base (Legacy) |
-
-#### English Language Models
-
-| Model Name | Short Name | Max Length | Dimensions | Description |
-|-----------|------------|------------|------------|-------------|
-| sentence-transformers/all-mpnet-base-v2 | all-mpnet-base-v2 | 514 | 768 | All MPNet Base v2 (balanced performance) |
-| sentence-transformers/all-MiniLM-L6-v2 | all-minilm-l6-v2 | 256 | 384 | All MiniLM L6 v2 (fast and efficient) |
-| intfloat/e5-base | e5-base | 512 | 768 | E5 Base Model (English optimized) |
-| intfloat/e5-large | e5-large | 512 | 1024 | E5 Large Model (English optimized) |
+| mixedbread-ai/mxbai-embed-large-v1 | mxbai-embed-large | 512 | 1024 | MixedBread AI Large v1 |
+| nvidia/NV-Embed-v2 | nv-embed-v2 | 32768 | 4096 | NVIDIA NV-Embed v2 (SOTA performance) |
 
 ## Quick Start
 
@@ -103,47 +77,47 @@ chmod +x start.sh
 
 ```bash
 # Build for NVIDIA GPU
-docker build -t rerank-api .
+docker build -t retrieval-api .
 
 # Build with proxy support
-docker build -t rerank-api \
+docker build -t retrieval-api \
   --build-arg HTTP_PROXY=http://proxy.company.com:8080 \
   --build-arg HTTPS_PROXY=http://proxy.company.com:8080 \
   --build-arg NO_PROXY=localhost,127.0.0.1 .
 
 # Build for AMD GPU  
-docker build -f docker/Dockerfile.amd -t rerank-api:amd .
+docker build -f docker/Dockerfile.amd -t retrieval-api:amd .
 
 # Build with flexible configuration
-docker build -f docker/Dockerfile.flexible --build-arg COMPUTE_MODE=cpu -t rerank-api:cpu .
+docker build -f docker/Dockerfile.flexible --build-arg COMPUTE_MODE=cpu -t retrieval-api:cpu .
 
 # Run with NVIDIA GPU support
-docker run -d --name rerank-api \
-  -p 7987:7987 \
+docker run -d --name retrieval-api \
+  -p 8000:8000 \
   --gpus all \
-  rerank-api
+  retrieval-api
 
 # Run with proxy settings
-docker run -d --name rerank-api \
-  -p 7987:7987 \
+docker run -d --name retrieval-api \
+  -p 8000:8000 \
   --gpus all \
   -e HTTP_PROXY=http://proxy.company.com:8080 \
   -e HTTPS_PROXY=http://proxy.company.com:8080 \
   -e NO_PROXY=localhost,127.0.0.1 \
-  rerank-api
+  retrieval-api
 
 # Run with AMD GPU support
-docker run -d --name rerank-api-amd \
-  -p 7987:7987 \
+docker run -d --name retrieval-api-amd \
+  -p 8000:8000 \
   --device=/dev/kfd --device=/dev/dri \
   --group-add video --group-add render \
-  rerank-api:amd
+  retrieval-api:amd
 
 # Run with CPU only
-docker run -d --name rerank-api \
-  -p 7987:7987 \
+docker run -d --name retrieval-api \
+  -p 8000:8000 \
   -e CUDA_VISIBLE_DEVICES=-1 \
-  rerank-api
+  retrieval-api
 ```
 
 #### Docker Compose
@@ -186,7 +160,7 @@ python run.py
 Check available models:
 
 ```bash
-curl http://localhost:7987/models
+curl http://localhost:8000/models
 ```
 
 ### Rerank Endpoint
@@ -196,10 +170,10 @@ Rerank documents with dynamic model selection:
 #### Using Default Model
 
 ```bash
-curl -X POST "http://localhost:7987/v1/rerank" \
+curl -X POST "http://localhost:8000/v1/rerank" \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "jina-reranker-v2-multilingual",
+    "model": "bce-reranker-base_v1",
     "query": "What is machine learning?",
     "documents": [
       "Machine learning is a branch of artificial intelligence.",
@@ -211,11 +185,11 @@ curl -X POST "http://localhost:7987/v1/rerank" \
   }'
 ```
 
-#### Using Different Models
+#### Using Japanese Models
 
 ```bash
 # Using Japanese high-performance model
-curl -X POST "http://localhost:7987/v1/rerank" \
+curl -X POST "http://localhost:8000/v1/rerank" \
   -H "Content-Type: application/json" \
   -d '{
     "model": "japanese-reranker-large",
@@ -230,57 +204,52 @@ curl -X POST "http://localhost:7987/v1/rerank" \
   }'
 
 # Using Japanese balanced model
-curl -X POST "http://localhost:7987/v1/rerank" \
+curl -X POST "http://localhost:8000/v1/rerank" \
   -H "Content-Type: application/json" \
   -d '{
     "model": "japanese-reranker-base",
-    "query": "自然言語処理",
+    "query": "自然言語処理の技術について",
     "documents": [
       "NLPはコンピュータが人間の言語を理解するのを助けます。",
       "パスタを茹でるにはまずお湯を沸かします。",
       "テキスト解析はNLPの中核的な要素です。"
     ]
   }'
+```
 
-# Using high-performance large model (8k context)
-curl -X POST "http://localhost:7987/v1/rerank" \
+#### Using Multilingual Models
+
+```bash
+# Using high-performance multilingual model
+curl -X POST "http://localhost:8000/v1/rerank" \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "mxbai-rerank-large",
-    "query": "What is artificial intelligence?",
+    "model": "jina-reranker-v2",
+    "query": "artificial intelligence applications",
     "documents": [
-      "AI simulates human intelligence in machines.",
-      "The weather forecast shows rain tomorrow.",
-      "Machine learning is a subset of AI technology."
+      "AI is used in healthcare for diagnosis",
+      "The weather is nice today",
+      "Machine learning powers recommendation systems",
+      "Natural language processing enables chatbots"
     ],
-    "top_n": 2,
+    "top_n": 3,
     "return_documents": true
   }'
 
-# Using ultra-long context model (32k tokens)
-curl -X POST "http://localhost:7987/v1/rerank" \
+# Using high-performance large model
+curl -X POST "http://localhost:8000/v1/rerank" \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "bge-reranker-v2-m3",
-    "query": "Natural language processing",
+    "model": "mxbai-rerank-large",
+    "query": "sustainable energy solutions",
     "documents": [
-      "NLP helps computers understand human language.",
-      "Cooking pasta requires boiling water first.",
-      "Text analysis is a core component of NLP."
-    ]
-  }'
-
-# Using fast turbo model for quick inference
-curl -X POST "http://localhost:7987/v1/rerank" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "jina-reranker-turbo",
-    "query": "Machine learning algorithms",
-    "documents": [
-      "Deep learning uses neural networks with multiple layers.",
-      "Today's lunch menu includes sandwiches and salads.",
-      "Support vector machines are powerful ML algorithms."
-    ]
+      "Solar panels convert sunlight into electricity",
+      "Today is a beautiful day",
+      "Wind turbines generate clean energy",
+      "Electric vehicles reduce carbon emissions"
+    ],
+    "top_n": 2,
+    "return_documents": true
   }'
 ```
 
@@ -288,23 +257,23 @@ curl -X POST "http://localhost:7987/v1/rerank" \
 
 ```json
 {
-  "model": "jina-reranker-v2-multilingual",
+  "model": "jinaai/jina-reranker-v2-base-multilingual",
   "results": [
     {
       "index": 0,
-      "relevance_score": 0.95,
-      "document": "Machine learning is a branch of artificial intelligence."
+      "relevance_score": 0.9823,
+      "document": "AI is used in healthcare for diagnosis"
     },
     {
       "index": 2,
-      "relevance_score": 0.87,
-      "document": "Deep learning is a method of machine learning."
+      "relevance_score": 0.9156,
+      "document": "Machine learning powers recommendation systems"
     }
   ],
   "meta": {
     "api_version": "v1",
-    "processing_time_ms": 145,
-    "total_documents": 3,
+    "processing_time_ms": 245,
+    "total_documents": 4,
     "returned_documents": 2
   }
 }
@@ -315,7 +284,7 @@ curl -X POST "http://localhost:7987/v1/rerank" \
 #### Create Embeddings
 
 ```bash
-curl -X POST "http://localhost:7987/v1/embeddings" \
+curl -X POST "http://localhost:8000/v1/embeddings" \
   -H "Content-Type: application/json" \
   -d '{
     "model": "bge-m3",
@@ -326,7 +295,7 @@ curl -X POST "http://localhost:7987/v1/embeddings" \
 #### Batch Embeddings
 
 ```bash
-curl -X POST "http://localhost:7987/v1/embeddings" \
+curl -X POST "http://localhost:8000/v1/embeddings" \
   -H "Content-Type: application/json" \
   -d '{
     "model": "bge-m3",
@@ -336,37 +305,53 @@ curl -X POST "http://localhost:7987/v1/embeddings" \
       "Third text to embed"
     ]
   }'
+```
 
+#### Using Japanese Models
+
+```bash
 # Using Japanese high-performance model
-curl -X POST "http://localhost:7987/v1/embeddings" \
+curl -X POST "http://localhost:8000/v1/embeddings" \
   -H "Content-Type: application/json" \
   -d '{
     "model": "ruri-large",
-    "input": "自然言語処理は人工知能の重要な分野です。"
+    "input": [
+      "自然言語処理は人工知能の重要な分野です。",
+      "機械学習アルゴリズムは大量のデータを必要とします。",
+      "深層学習は多層ニューラルネットワークを使用します。"
+    ]
   }'
 
 # Using Japanese balanced model
-curl -X POST "http://localhost:7987/v1/embeddings" \
+curl -X POST "http://localhost:8000/v1/embeddings" \
   -H "Content-Type: application/json" \
   -d '{
     "model": "ruri-base",
     "input": "日本語のテキスト埋め込みを生成します。"
   }'
+```
 
-# Using high-performance SOTA model (32k context)
-curl -X POST "http://localhost:7987/v1/embeddings" \
+#### Using Multilingual Models
+
+```bash
+# Using high-performance multilingual model
+curl -X POST "http://localhost:8000/v1/embeddings" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "multilingual-e5-large",
+    "input": [
+      "Tokyo is the capital of Japan",
+      "Machine learning is a subset of AI",
+      "Natural language processing is important"
+    ]
+  }'
+
+# Using SOTA model with high dimensions
+curl -X POST "http://localhost:8000/v1/embeddings" \
   -H "Content-Type: application/json" \
   -d '{
     "model": "nv-embed-v2",
-    "input": "This is a very long document that requires high-quality embeddings with support for extended context lengths up to 32,768 tokens."
-  }'
-
-# Using efficient lightweight model
-curl -X POST "http://localhost:7987/v1/embeddings" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "all-minilm-l6-v2",
-    "input": "Quick embedding for fast inference."
+    "input": "This model provides state-of-the-art embedding quality with 4096 dimensions."
   }'
 ```
 
@@ -375,17 +360,22 @@ curl -X POST "http://localhost:7987/v1/embeddings" \
 ```json
 {
   "object": "list",
-  "model": "bge-m3",
+  "model": "BAAI/bge-m3",
   "data": [
     {
       "object": "embedding",
       "index": 0,
-      "embedding": [0.123, -0.456, 0.789, ...]
+      "embedding": [0.0234, -0.0156, 0.0789, ...]
+    },
+    {
+      "object": "embedding",
+      "index": 1,
+      "embedding": [0.0412, -0.0298, 0.0634, ...]
     }
   ],
   "usage": {
-    "prompt_tokens": 8,
-    "total_tokens": 8
+    "prompt_tokens": 16,
+    "total_tokens": 16
   }
 }
 ```
@@ -394,12 +384,12 @@ curl -X POST "http://localhost:7987/v1/embeddings" \
 
 #### Health Check
 ```bash
-curl http://localhost:7987/health
+curl http://localhost:8000/health
 ```
 
 #### Model List
 ```bash
-curl http://localhost:7987/models
+curl http://localhost:8000/models
 ```
 
 ## API Specification
@@ -410,7 +400,7 @@ curl http://localhost:7987/models
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| model | string | No | Model to use (short name or full name, default: "jina-reranker-v2-multilingual") |
+| model | string | No | Model to use (short name or full name, default: "bce-reranker-base_v1") |
 | query | string | Yes | Query string for ranking documents |
 | documents | array[string] | Yes | List of documents to rerank (max 1000) |
 | top_n | integer | No | Number of top results to return |
@@ -451,16 +441,44 @@ curl http://localhost:7987/models
 | data[].embedding | array[float] or string | Embedding vector (float array or base64 string) |
 | usage | object | Token usage information |
 
+## Model Management Features
+
+### Pre-loading and Caching
+
+- **Default Models**: Pre-loaded during service startup for immediate response
+- **On-demand Loading**: Models loaded automatically when first requested
+- **Memory Caching**: Models cached in memory for subsequent requests
+- **Automatic Fallback**: Falls back to default models on loading errors
+
+### Dynamic Model Switching
+
+- **API-level Selection**: Switch models using short names or full model names
+- **Unified Management**: Both reranker and embedding models use identical management patterns
+- **Error Handling**: Graceful error handling with fallback mechanisms
+- **Model Information**: Detailed model metadata available via API
+
+### Language Support
+
+#### Japanese Language Optimization
+- **Specialized Tokenization**: Japanese-specific text processing
+- **High Performance**: Models trained specifically on Japanese corpora
+- **Cultural Context**: Better understanding of Japanese language nuances
+
+#### Multilingual Capabilities
+- **100+ Languages**: Support for diverse language processing
+- **Cross-lingual**: Consistent performance across different languages
+- **Unicode Support**: Full Unicode character set handling
+
 ## Environment Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | HOST | 0.0.0.0 | Service host |
-| PORT | 7987 | Service port |
+| PORT | 8000 | Service port |
 | WORKERS | 1 | Number of workers |
-| RERANKER_MODEL_NAME | jinaai/jina-reranker-v2-base-multilingual | Default reranker model name |
-| RERANKER_MODELS_DIR | /app/models | Base directory for model storage |
+| RERANKER_MODEL_NAME | maidalun1020/bce-reranker-base_v1 | Default reranker model name |
 | EMBEDDING_MODEL_NAME | BAAI/bge-m3 | Default embedding model name |
+| RERANKER_MODELS_DIR | /app/models | Base directory for model storage |
 | HTTP_PROXY | - | HTTP proxy server URL |
 | HTTPS_PROXY | - | HTTPS proxy server URL |
 | NO_PROXY | - | Comma-separated list of hosts to bypass proxy |
@@ -500,19 +518,6 @@ docker build -f docker/Dockerfile.amd -t test:amd .
 docker build -f docker/Dockerfile.flexible --build-arg COMPUTE_MODE=cpu -t test:cpu .
 ```
 
-### Code Quality
-
-```bash
-# Format code
-black .
-
-# Lint code
-ruff check .
-
-# Type checking
-mypy app.py
-```
-
 ### Test API Manually
 
 Use the included test script:
@@ -531,15 +536,15 @@ docker build \
   --build-arg HTTP_PROXY=http://proxy.company.com:8080 \
   --build-arg HTTPS_PROXY=http://proxy.company.com:8080 \
   --build-arg NO_PROXY=localhost,127.0.0.1 \
-  -t rerank-api .
+  -t retrieval-api .
 
 # Build AMD GPU version
-docker build -f docker/Dockerfile.amd -t rerank-api:amd .
+docker build -f docker/Dockerfile.amd -t retrieval-api:amd .
 
 # Build CPU-only version
 docker build -f docker/Dockerfile.flexible \
   --build-arg COMPUTE_MODE=cpu \
-  -t rerank-api:cpu .
+  -t retrieval-api:cpu .
 ```
 
 ### GPU Support
@@ -563,9 +568,14 @@ Models are automatically cached after first load. The cache directory structure:
 
 ```
 /app/models/
-├── maidalun1020_bce-reranker-base_v1/
-├── BAAI_bge-reranker-base/
-└── BAAI_bge-reranker-large/
+├── rerankers/
+│   ├── maidalun1020_bce-reranker-base_v1/
+│   ├── jinaai_jina-reranker-v2-base-multilingual/
+│   └── hotchpotch_japanese-reranker-cross-encoder-large-v1/
+└── embeddings/
+    ├── BAAI_bge-m3/
+    ├── cl-nagoya_ruri-large/
+    └── intfloat_multilingual-e5-large/
 ```
 
 ### Docker File Structure
@@ -589,7 +599,7 @@ docker/
 
 ### Custom Models
 
-To add custom models, update the `supported_models` dictionary in `model_loader.py`:
+To add custom models, update the `supported_models` dictionary in `reranker_loader.py` or `embedding_loader.py`:
 
 ```python
 self.supported_models = {
@@ -625,10 +635,10 @@ The service automatically detects available GPU hardware:
 
 ### Memory Management
 
-- Efficient model caching
-- Batch processing for improved throughput
-- Configurable worker count
-- Automatic memory cleanup
+- **Efficient Caching**: Models cached after first load for faster subsequent requests
+- **Batch Processing**: Multiple documents/texts processed together for improved throughput
+- **Memory Monitoring**: Automatic memory cleanup and monitoring
+- **Resource Limits**: Configurable memory limits for Docker deployments
 
 ## Troubleshooting
 
@@ -642,10 +652,10 @@ If you encounter the error: `could not select device driver "nvidia" with capabi
 docker-compose -f docker/docker-compose.cpu.yml up -d
 
 # Using docker run
-docker run -d --name rerank-api \
-  -p 7987:7987 \
+docker run -d --name retrieval-api \
+  -p 8000:8000 \
   -e CUDA_VISIBLE_DEVICES=-1 \
-  rerank-api
+  retrieval-api
 
 # Or use the automatic start script
 ./start.sh
@@ -697,9 +707,11 @@ deploy:
 
 ```python
 import requests
+import numpy as np
 
-def rerank_documents(query, documents, model="bce-reranker-base_v1"):
-    response = requests.post("http://localhost:7987/v1/rerank", json={
+# Reranking example
+def rerank_documents(query, documents, model="jina-reranker-v2"):
+    response = requests.post("http://localhost:8000/v1/rerank", json={
         "model": model,
         "query": query,
         "documents": documents,
@@ -708,18 +720,41 @@ def rerank_documents(query, documents, model="bce-reranker-base_v1"):
     })
     return response.json()
 
-# Example usage
-query = "machine learning algorithms"
-docs = [
-    "Machine learning is a subset of artificial intelligence",
-    "Today's weather is sunny and warm",
-    "Neural networks are powerful ML algorithms",
-    "Cooking requires fresh ingredients"
+# Embedding example
+def create_embeddings(texts, model="bge-m3"):
+    response = requests.post("http://localhost:8000/v1/embeddings", json={
+        "model": model,
+        "input": texts
+    })
+    return response.json()
+
+# Example usage with Japanese models
+japanese_query = "人工知能の応用分野について"
+japanese_docs = [
+    "AIは医療診断で重要な役割を果たしています",
+    "今日は良い天気です",
+    "機械学習は推薦システムに使われています",
+    "自然言語処理はチャットボットを可能にします"
 ]
 
-results = rerank_documents(query, docs)
-for result in results["results"]:
+# Rerank with Japanese model
+rerank_results = rerank_documents(
+    japanese_query, 
+    japanese_docs, 
+    model="japanese-reranker-large"
+)
+
+for result in rerank_results["results"]:
     print(f"Score: {result['relevance_score']:.3f} - {result['document']}")
+
+# Generate embeddings with Japanese model
+embed_results = create_embeddings(
+    ["東京は日本の首都です", "機械学習は人工知能の分野です"],
+    model="ruri-large"
+)
+
+embeddings = [item['embedding'] for item in embed_results['data']]
+print(f"Generated {len(embeddings)} embeddings with {len(embeddings[0])} dimensions")
 ```
 
 ### JavaScript/Node.js Example
@@ -727,9 +762,9 @@ for result in results["results"]:
 ```javascript
 const axios = require('axios');
 
-async function rerankDocuments(query, documents, model = 'bce-reranker-base_v1') {
+async function rerankDocuments(query, documents, model = 'jina-reranker-v2') {
   try {
-    const response = await axios.post('http://localhost:7987/v1/rerank', {
+    const response = await axios.post('http://localhost:8000/v1/rerank', {
       model,
       query,
       documents,
@@ -743,19 +778,43 @@ async function rerankDocuments(query, documents, model = 'bce-reranker-base_v1')
   }
 }
 
+async function createEmbeddings(input, model = 'bge-m3') {
+  try {
+    const response = await axios.post('http://localhost:8000/v1/embeddings', {
+      model,
+      input
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
 // Example usage
-const query = "machine learning algorithms";
+const query = "sustainable energy solutions";
 const docs = [
-  "Machine learning is a subset of artificial intelligence",
-  "Today's weather is sunny and warm",
-  "Neural networks are powerful ML algorithms",
-  "Cooking requires fresh ingredients"
+  "Solar panels convert sunlight into electricity",
+  "Today is a beautiful day",
+  "Wind turbines generate clean energy",
+  "Electric vehicles reduce carbon emissions"
 ];
 
-rerankDocuments(query, docs).then(results => {
-  results.results.forEach(result => {
-    console.log(`Score: ${result.relevance_score.toFixed(3)} - ${result.document}`);
+// Rerank documents
+rerankDocuments(query, docs, 'mxbai-rerank-large').then(results => {
+  console.log('Reranking Results:');
+  results.results.forEach((result, index) => {
+    console.log(`${index + 1}. Score: ${result.relevance_score.toFixed(3)} - ${result.document}`);
   });
+});
+
+// Generate embeddings
+createEmbeddings([
+  "Artificial intelligence is transforming industries",
+  "Deep learning models require large datasets"
+], 'multilingual-e5-large').then(results => {
+  console.log(`Generated ${results.data.length} embeddings`);
+  console.log(`Embedding dimension: ${results.data[0].embedding.length}`);
 });
 ```
 
@@ -773,4 +832,4 @@ If you encounter any issues, please report them on the GitHub Issues page.
 
 ---
 
-**Note**: This service provides document reranking capabilities and is designed for production use with proper monitoring and scaling considerations.
+**Note**: This service provides document reranking and text embedding capabilities and is designed for production use with proper monitoring and scaling considerations.
