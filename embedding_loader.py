@@ -393,3 +393,111 @@ class EmbeddingModel:
         else:
             self.model = self.model.to(self.device)
         return self
+
+
+class EmbeddingModelManager:
+    """Manages multiple embedding models with same design as ModelManager"""
+    
+    def __init__(self, default_model: str = "BAAI/bge-m3", 
+                 models_base_dir: str = "/app/models/embeddings"):
+        """
+        Initialize the embedding model manager
+        
+        Args:
+            default_model: Default embedding model to use
+            models_base_dir: Base directory for storing models
+        """
+        self.default_model = default_model
+        self.models_base_dir = models_base_dir
+        self.loaded_models: Dict[str, EmbeddingModel] = {}
+        
+        logger.info(f"No GPU detected for embeddings, using CPU")
+        logger.info(f"Initializing embedding model on device: cpu")
+        logger.info(f"Loading embedding model from Hugging Face Hub: {default_model}")
+        
+        # Pre-load default model
+        try:
+            self.load_model(default_model)
+            logger.info(f"Embedding model loaded successfully, using sentence-transformers")
+            logger.info(f"Embedding model manager initialized with default model: {default_model}")
+        except Exception as e:
+            logger.error(f"Failed to initialize default embedding model: {str(e)}")
+            
+    def load_model(self, model_name: str) -> EmbeddingModel:
+        """
+        Load an embedding model, returning cached version if already loaded
+        
+        Args:
+            model_name: Name of the model to load
+            
+        Returns:
+            Loaded EmbeddingModel instance
+        """
+        if model_name in self.loaded_models:
+            logger.info(f"Using cached embedding model: {model_name}")
+            return self.loaded_models[model_name]
+        
+        try:
+            logger.info(f"Loading new embedding model: {model_name}")
+            
+            # Create model directory path
+            model_dir = os.path.join(self.models_base_dir, model_name.replace("/", "_"))
+            
+            # Load the model
+            embedding_model = EmbeddingModel(
+                model_name=model_name,
+                model_dir=model_dir
+            )
+            
+            # Cache the loaded model
+            self.loaded_models[model_name] = embedding_model
+            logger.info(f"Embedding model {model_name} loaded and cached successfully")
+            
+            return embedding_model
+            
+        except Exception as e:
+            logger.error(f"Failed to load embedding model {model_name}: {str(e)}")
+            
+            # Fallback to default model if different from requested
+            if model_name != self.default_model:
+                logger.info(f"Falling back to default embedding model: {self.default_model}")
+                return self.load_model(self.default_model)
+            else:
+                raise e
+    
+    def encode(self, model_name: str, sentences: Union[str, List[str]], **kwargs) -> np.ndarray:
+        """
+        Encode sentences using specified model
+        
+        Args:
+            model_name: Name of the model to use
+            sentences: Sentences to encode
+            **kwargs: Additional arguments for encoding
+            
+        Returns:
+            Encoded embeddings
+        """
+        model = self.load_model(model_name)
+        return model.encode(sentences, **kwargs)
+    
+    def get_model_info(self, model_name: str) -> Dict[str, Any]:
+        """
+        Get information about a specific model
+        
+        Args:
+            model_name: Name of the model
+            
+        Returns:
+            Model information dictionary
+        """
+        model = self.load_model(model_name)
+        return model.get_model_info()
+    
+    def clear_cache(self):
+        """Clear all loaded models from cache"""
+        self.loaded_models.clear()
+        logger.info("Cleared all embedding model cache")
+    
+    def get_loaded_models(self) -> List[str]:
+        """Get list of currently loaded model names"""
+        return list(self.loaded_models.keys())

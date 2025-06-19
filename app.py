@@ -240,6 +240,16 @@ async def rerank(
             model_name = "BAAI/bge-reranker-base"
         elif model_name == "bge-reranker-large":
             model_name = "BAAI/bge-reranker-large"
+        elif model_name == "japanese-reranker-large":
+            model_name = "hotchpotch/japanese-reranker-cross-encoder-large-v1"
+        elif model_name == "japanese-reranker-base":
+            model_name = "hotchpotch/japanese-reranker-cross-encoder-base-v1"
+        elif model_name == "glucose-base-ja":
+            model_name = "pkshatech/GLuCoSE-base-ja"
+        elif model_name == "jina-reranker-v2":
+            model_name = "jinaai/jina-reranker-v2-base-multilingual"
+        elif model_name == "mxbai-rerank-large":
+            model_name = "mixedbread-ai/mxbai-rerank-large-v1"
         
         # Log request info
         logger.info(f"Rerank request - model: {model_name}, query length: {len(request.query)}, documents: {len(request.documents)}")
@@ -308,17 +318,20 @@ async def create_embeddings(
             model_name = "intfloat/e5-large"
         elif model_name == "multilingual-e5-large":
             model_name = "intfloat/multilingual-e5-large"
-        
-        # Load embedding model if not already loaded
-        if model_name not in embedding_models:
-            logger.info(f"Loading embedding model: {model_name}")
-            models_base_dir = os.getenv("RERANKER_MODELS_DIR", "/app/models")
-            embedding_models[model_name] = EmbeddingModel(
-                model_name=model_name,
-                model_dir=os.path.join(models_base_dir, "embeddings", model_name.replace("/", "_"))
-            )
-        
-        embedding_model = embedding_models[model_name]
+        elif model_name == "ruri-large":
+            model_name = "cl-nagoya/ruri-large"
+        elif model_name == "ruri-base":
+            model_name = "cl-nagoya/ruri-base"
+        elif model_name == "japanese-simcse-large":
+            model_name = "MU-Kindai/Japanese-SimCSE-BERT-large-unsup"
+        elif model_name == "sentence-luke-base":
+            model_name = "sonoisa/sentence-luke-japanese-base-lite"
+        elif model_name == "glucose-base-ja-v2":
+            model_name = "pkshatech/GLuCoSE-base-ja-v2"
+        elif model_name == "mxbai-embed-large":
+            model_name = "mixedbread-ai/mxbai-embed-large-v1"
+        elif model_name == "nv-embed-v2":
+            model_name = "nvidia/NV-Embed-v2"
         
         # Prepare input
         if isinstance(request.input, str):
@@ -329,9 +342,10 @@ async def create_embeddings(
         # Log request info
         logger.info(f"Embedding request - model: {model_name}, texts: {len(texts)}")
         
-        # Generate embeddings
+        # Generate embeddings using the manager
         start_time = time.time()
-        embeddings = embedding_model.encode(
+        embeddings = embedding_manager.encode(
+            model_name,
             texts,
             convert_to_numpy=True,
             normalize_embeddings=True
